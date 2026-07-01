@@ -2,7 +2,9 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { ApiError, getProfile, logout, PublicUser } from '@/lib/api';
 
 interface NavItem {
   icon: string;
@@ -13,18 +15,69 @@ interface NavItem {
 
 const navigationItems: NavItem[] = [
   { icon: '/icons/tableau-de-bord.png', label: 'Tableau de bord', href: '/dashboard' },
-  { icon: '/icons/redaction.png', label: 'Rédaction', href: '/redaction' },
+  { icon: '/icons/redaction.png', label: 'Redaction', href: '/redaction' },
   { icon: '/icons/curration.png', label: 'Curation', href: '/curation' },
   { icon: '/icons/contenus.png', label: 'Mes contenus', href: '/contenus' },
-  { icon: '/icons/idees.png', label: 'Idées IA', href: '/idees', hasBadge: true },
-  { icon: '/icons/equipe.png', label: 'Équipe', href: '/equipe' },
-  { icon: '/icons/integrations.png', label: 'Intégrations', href: '/integrations' },
+  { icon: '/icons/idees.png', label: 'Idees IA', href: '/idees', hasBadge: true },
+  { icon: '/icons/equipe.png', label: 'Equipe', href: '/equipe' },
+  { icon: '/icons/integrations.png', label: 'Integrations', href: '/integrations' },
 ];
 
 export default function Sidebar() {
-  const pathname = usePathname(); 
+  const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<PublicUser | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const isSelected = (href: string) => pathname === href;
+
+  useEffect(() => {
+    let ignoreResult = false;
+
+    async function loadUser() {
+      setIsLoadingUser(true);
+
+      try {
+        const profile = await getProfile();
+
+        if (!ignoreResult) {
+          setUser(profile);
+        }
+      } catch (caughtError) {
+        if (!ignoreResult) {
+          if (!(caughtError instanceof ApiError) || caughtError.status !== 401) {
+            console.error(caughtError);
+          }
+
+          setUser(null);
+        }
+      } finally {
+        if (!ignoreResult) {
+          setIsLoadingUser(false);
+        }
+      }
+    }
+
+    void loadUser();
+
+    return () => {
+      ignoreResult = true;
+    };
+  }, [pathname]);
+
+  async function handleLogout() {
+    setIsLoggingOut(true);
+
+    try {
+      await logout();
+      setUser(null);
+      router.push('/connexion');
+      router.refresh();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col flex-shrink-0">
@@ -64,24 +117,99 @@ export default function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-gray-200 space-y-1">
-        <Link
-          href="/profil"
-          className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
-            isSelected('/profil') ? 'bg-gray-100 text-gray-900 font-bold' : 'text-gray-600 hover:bg-gray-100 font-medium'
-          }`}
-        >
-          <Image src="/icons/utilisateur.png" alt="" width={20} height={20} className="w-5 h-5 opacity-75" />
-          <span className="text-sm">Utilisateur</span>
-        </Link>
+        {user ? (
+          <div className="px-4 py-2">
+            <p className="text-xs font-semibold text-gray-900 truncate">
+              {user.displayName || user.email}
+            </p>
+            <p className="text-xs text-gray-400 truncate">{user.email}</p>
+          </div>
+        ) : null}
+
+        {isLoadingUser ? (
+          <div className="px-4 py-2.5 text-xs text-gray-400">Session...</div>
+        ) : user ? (
+          <>
+            <Link
+              href="/profil"
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                isSelected('/profil')
+                  ? 'bg-gray-100 text-gray-900 font-bold'
+                  : 'text-gray-600 hover:bg-gray-100 font-medium'
+              }`}
+            >
+              <Image
+                src="/icons/utilisateur.png"
+                alt=""
+                width={20}
+                height={20}
+                className="w-5 h-5 opacity-75"
+              />
+              <span className="text-sm">Utilisateur</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => void handleLogout()}
+              disabled={isLoggingOut}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-gray-600 hover:bg-gray-100 font-medium disabled:text-gray-300"
+            >
+              <span className="w-5 h-5 flex items-center justify-center text-sm">x</span>
+              <span className="text-sm">
+                {isLoggingOut ? 'Deconnexion...' : 'Deconnexion'}
+              </span>
+            </button>
+          </>
+        ) : (
+          <>
+            <Link
+              href="/connexion"
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                isSelected('/connexion')
+                  ? 'bg-gray-100 text-gray-900 font-bold'
+                  : 'text-gray-600 hover:bg-gray-100 font-medium'
+              }`}
+            >
+              <Image
+                src="/icons/utilisateur.png"
+                alt=""
+                width={20}
+                height={20}
+                className="w-5 h-5 opacity-75"
+              />
+              <span className="text-sm">Connexion</span>
+            </Link>
+
+            <Link
+              href="/inscription"
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                isSelected('/inscription')
+                  ? 'bg-gray-100 text-gray-900 font-bold'
+                  : 'text-gray-600 hover:bg-gray-100 font-medium'
+              }`}
+            >
+              <span className="w-5 h-5 flex items-center justify-center text-sm">+</span>
+              <span className="text-sm">Inscription</span>
+            </Link>
+          </>
+        )}
 
         <Link
           href="/parametres"
           className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
-            isSelected('/parametres') ? 'bg-gray-100 text-gray-900 font-bold' : 'text-gray-600 hover:bg-gray-100 font-medium'
+            isSelected('/parametres')
+              ? 'bg-gray-100 text-gray-900 font-bold'
+              : 'text-gray-600 hover:bg-gray-100 font-medium'
           }`}
         >
-          <Image src="/icons/parametres.png" alt="" width={20} height={20} className="w-5 h-5 opacity-75" />
-          <span className="text-sm">Paramètres</span>
+          <Image
+            src="/icons/parametres.png"
+            alt=""
+            width={20}
+            height={20}
+            className="w-5 h-5 opacity-75"
+          />
+          <span className="text-sm">Parametres</span>
         </Link>
       </div>
     </aside>
