@@ -29,7 +29,7 @@ export default function ParametresPage() {
   const [agencyName, setAgencyName] = useState('SEO Genius Agency');
   const [notionDatabaseId, setNotionDatabaseId] = useState('');
   const [notionWorkspaceName, setNotionWorkspaceName] = useState('');
-  const [modelIA, setModelIA] = useState('gpt-4o');
+  const [modelIA, setModelIA] = useState('gemini-2.0-flash');
   const [isLoadingAgency, setIsLoadingAgency] = useState(true);
   const [isSavingAgency, setIsSavingAgency] = useState(false);
   const [agencyError, setAgencyError] = useState<string | null>(null);
@@ -283,9 +283,9 @@ export default function ParametresPage() {
                 onChange={(event) => setModelIA(event.target.value)}
                 className="w-full text-sm border border-gray-200 text-gray-500 rounded-lg p-2.5 bg-white focus:outline-none focus:border-gray-400"
               >
-                <option value="gpt-4o">OpenAI GPT-4o (Recommande)</option>
-                <option value="claude-3-5">Anthropic Claude 3.5 Sonnet</option>
-                <option value="local">Modele custom d&apos;agence (API locale)</option>
+                <option value="gemini-2.0-flash">Google Gemini 2.0 Flash</option>
+                <option value="gemini-1.5-flash">Google Gemini 1.5 Flash</option>
+                <option value="demo-local">Demo locale</option>
               </select>
             </div>
             <div>

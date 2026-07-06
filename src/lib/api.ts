@@ -64,6 +64,42 @@ export type AuthSession = {
   user: PublicUser;
 };
 
+export type AiUsage = {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+};
+
+export type AiProviderStatus = {
+  id: string;
+  label: string;
+  configured: boolean;
+  defaultModel: string;
+  missingConfig?: string[];
+};
+
+export type AiProvidersResponse = {
+  defaultProvider: string;
+  providers: AiProviderStatus[];
+};
+
+export type AiCompletionResult = {
+  provider: string;
+  model: string;
+  content: string;
+  usage?: AiUsage;
+};
+
+export type GenerateTextInput = {
+  prompt: string;
+  context?: string;
+  systemPrompt?: string;
+  provider?: string;
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+};
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -141,6 +177,17 @@ export function logout() {
 
 export function getProfile() {
   return apiRequest<PublicUser>('/auth/me');
+}
+
+export function getAiProviders() {
+  return apiRequest<AiProvidersResponse>('/ai/providers');
+}
+
+export function generateText(input: GenerateTextInput) {
+  return apiRequest<AiCompletionResult>('/ai/generate', {
+    method: 'POST',
+    body: input,
+  });
 }
 
 export function getCurrentAgency() {

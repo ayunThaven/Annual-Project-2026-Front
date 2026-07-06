@@ -1,164 +1,291 @@
 'use client';
 
-import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { FormEvent, useState } from 'react';
+import { ApiError, generateText } from '@/lib/api';
+
+type ContentType = 'blog' | 'linkedin' | 'newsletter';
+type Tone = 'professionnel' | 'expert' | 'storytelling';
+type ContentLength = 'court' | 'moyen' | 'long';
+
+type ChatMessage = {
+  id: number;
+  sender: 'ai' | 'user';
+  text: string;
+  time: string;
+  model?: string;
+};
+
+const contentTypeOptions: Array<{ id: ContentType; label: string }> = [
+  { id: 'blog', label: 'Article de blog' },
+  { id: 'linkedin', label: 'Post LinkedIn' },
+  { id: 'newsletter', label: 'Newsletter' },
+];
+
+const toneOptions: Array<{ id: Tone; label: string }> = [
+  { id: 'professionnel', label: 'Professionnel' },
+  { id: 'expert', label: 'Expert' },
+  { id: 'storytelling', label: 'Storytelling' },
+];
+
+const lengthOptions: Array<{ id: ContentLength; label: string; maxTokens: number }> = [
+  { id: 'court', label: 'Court', maxTokens: 600 },
+  { id: 'moyen', label: 'Moyen', maxTokens: 1200 },
+  { id: 'long', label: 'Long', maxTokens: 2200 },
+];
+
+function formatTime() {
+  return new Intl.DateTimeFormat('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date());
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.status === 401) {
+      return 'Vous devez être connecté pour utiliser la rédaction IA.';
+    }
+
+    if (error.status === 400 && error.message.includes('not configured')) {
+      return "Gemini n'est pas encore configuré côté serveur.";
+    }
+
+    return error.message;
+  }
+
+  return 'Impossible de générer le contenu pour le moment.';
+}
 
 export default function RedactionPage() {
-  const [contentType, setContentType] = useState<'blog' | 'linkedin' | 'newsletter'>('blog');
-  const [tone, setTone] = useState<'professionnel' | 'expert' | 'storytelling'>('professionnel');
-  const [length, setLength] = useState<'court' | 'moyen' | 'long'>('moyen');
+  const [contentType, setContentType] = useState<ContentType>('blog');
+  const [tone, setTone] = useState<Tone>('professionnel');
+  const [length, setLength] = useState<ContentLength>('moyen');
   const [inputMessage, setInputMessage] = useState('');
-
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  const [messages, setMessages] = useState([
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 1,
       sender: 'ai',
-      text: 'Bonjour ! Je suis votre assistant IA pour la création de contenu SEO. Décrivez-moi le contenu que vous souhaitez créer et je vous aiderai à le rédiger.',
-      time: '16:27',
-    },
-    {
-      id: 2,
-      sender: 'user',
-      text: 'Bonjour ! Je souhaiterai rédiger un article de blog sur les chats.',
-      time: '16:27',
-    },
-    {
-      id: 3,
-      sender: 'ai',
-      isArticle: true,
-      text: "Le Mystère du Quart d'Heure de Folie 🐈\nTout propriétaire de chat connaît ce moment : sans prévenir, votre félin se transforme en bolide, dévalant les couloirs et grimpant aux rideaux comme s'il chassait des fantômes. Ce phénomène, surnommé \"zoomies\" (ou FRAPs en anglais), est tout simplement une manière saine de libérer un surplus d'énergie accumulé pendant ses 16 heures de sieste quotidiennes.\nLe conseil du jour : Ne tentez pas de l'arrêter, assurez-vous juste que rien ne traîne sur son passage !",
-      time: '16:27',
+      text: 'Bonjour. Décrivez le contenu à produire, et Gemini générera une première version structurée.',
+      time: '',
     },
   ]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim()) return;
+  const selectedContentType = contentTypeOptions.find(
+    (option) => option.id === contentType,
+  );
+  const selectedTone = toneOptions.find((option) => option.id === tone);
+  const selectedLength = lengthOptions.find((option) => option.id === length);
+  const needsAuthentication =
+    error === 'Vous devez être connecté pour utiliser la rédaction IA.';
 
-    setMessages([
-      ...messages,
-      {
-        id: Date.now(),
-        sender: 'user',
-        text: inputMessage,
-        time: '16:27',
-      },
-    ]);
+  async function handleSendMessage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const prompt = inputMessage.trim();
+
+    if (!prompt || isGenerating) {
+      return;
+    }
+
+    const userMessage: ChatMessage = {
+      id: Date.now(),
+      sender: 'user',
+      text: prompt,
+      time: formatTime(),
+    };
+
+    setMessages((currentMessages) => [...currentMessages, userMessage]);
     setInputMessage('');
-  };
+    setError(null);
+    setIsGenerating(true);
+
+    try {
+      const result = await generateText({
+        provider: 'gemini',
+        prompt,
+        context: [
+          `Type de contenu: ${selectedContentType?.label ?? contentType}`,
+          `Ton: ${selectedTone?.label ?? tone}`,
+          `Longueur: ${selectedLength?.label ?? length}`,
+        ].join('\n'),
+        temperature: tone === 'storytelling' ? 0.8 : 0.5,
+        maxTokens: selectedLength?.maxTokens ?? 1200,
+      });
+
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: Date.now() + 1,
+          sender: 'ai',
+          text: result.content,
+          time: formatTime(),
+          model: result.model,
+        },
+      ]);
+    } catch (caughtError) {
+      const message = getErrorMessage(caughtError);
+      setError(message);
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: Date.now() + 1,
+          sender: 'ai',
+          text: message,
+          time: formatTime(),
+        },
+      ]);
+    } finally {
+      setIsGenerating(false);
+    }
+  }
 
   return (
     <div className="flex h-screen w-full bg-white text-gray-800 relative overflow-hidden">
-      
       <div className="flex-1 flex flex-col bg-white h-full transition-all duration-300">
-        
         <div className="px-8 py-4 border-b border-gray-200 flex items-center justify-between bg-white">
           <div className="flex items-center gap-2">
-            <Image src="/icons/contenu-ia.png" alt="" width={18} height={18} className="opacity-90" />
-            <h2 className="font-bold text-gray-900 text-lg">Rédaction de contenu IA</h2>
+            <Image
+              src="/icons/contenu-ia.png"
+              alt=""
+              width={18}
+              height={18}
+              className="opacity-90"
+            />
+            <div>
+              <h1 className="font-bold text-gray-900 text-lg">Rédaction IA</h1>
+              <p className="text-xs text-gray-500">
+                Assistant Gemini.
+              </p>
+            </div>
           </div>
-          
-          <button 
+
+          <button
+            type="button"
             onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-            className={`p-2 rounded-lg border transition-all ${
-              isSettingsOpen 
-                ? 'bg-blue-50 border-blue-200 text-blue-600' 
+            className={`px-3 py-2 rounded-lg border transition-all text-sm font-semibold ${
+              isSettingsOpen
+                ? 'bg-blue-50 border-blue-200 text-blue-600'
                 : 'hover:bg-gray-100 border-gray-200 text-gray-700'
             }`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-            </svg>
+            Réglages
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-16 py-8 space-y-8">
-          {messages.map((msg) => (
+        {error ? (
+          <div className="mx-8 mt-4 bg-red-50 border border-red-100 rounded-lg p-3 text-sm font-medium text-red-600">
+            <p>{error}</p>
+            {needsAuthentication ? (
+              <div className="flex flex-wrap gap-2 mt-3">
+                <Link
+                  href="/connexion?redirect=/redaction"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded-lg text-xs transition-colors"
+                >
+                  Se connecter
+                </Link>
+                <Link
+                  href="/inscription?redirect=/redaction"
+                  className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 font-semibold py-2 px-3 rounded-lg text-xs transition-colors"
+                >
+                  Créer un compte
+                </Link>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="flex-1 overflow-y-auto px-8 lg:px-16 py-8 space-y-6">
+          {messages.map((message) => (
             <div
-              key={msg.id}
+              key={message.id}
               className={`flex flex-col w-full ${
-                msg.sender === 'user' ? 'items-end' : 'items-start'
+                message.sender === 'user' ? 'items-end' : 'items-start'
               }`}
             >
-              <div className="border border-gray-200 rounded-xl p-5 relative max-w-2xl bg-white">
-                <p className="text-sm leading-relaxed whitespace-pre-line pr-4 text-gray-900">
-                  {msg.text}
+              <div
+                className={`border rounded-lg p-5 relative max-w-3xl ${
+                  message.sender === 'user'
+                    ? 'bg-blue-600 border-blue-600 text-white'
+                    : 'bg-white border-gray-200 text-gray-900'
+                }`}
+              >
+                <p className="text-sm leading-relaxed whitespace-pre-line">
+                  {message.text}
                 </p>
-                <span className="text-[10px] text-gray-400 block text-right mt-2">
-                  {msg.time}
-                </span>
+                <div
+                  className={`text-[10px] mt-3 flex justify-end gap-2 ${
+                    message.sender === 'user' ? 'text-blue-100' : 'text-gray-400'
+                  }`}
+                >
+                  {message.model ? <span>{message.model}</span> : null}
+                  {message.time ? <span>{message.time}</span> : null}
+                </div>
               </div>
             </div>
           ))}
+
+          {isGenerating ? (
+            <div className="text-sm text-gray-500">Gemini rédige...</div>
+          ) : null}
         </div>
 
         <div className="p-6 bg-white border-t border-gray-100">
-          <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex gap-3 items-center">
+          <form
+            onSubmit={handleSendMessage}
+            className="max-w-4xl mx-auto flex gap-3 items-center"
+          >
             <input
               type="text"
               value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
+              onChange={(event) => setInputMessage(event.target.value)}
               placeholder="Décrivez le contenu que vous souhaitez créer..."
-              className="flex-1 border border-gray-200 rounded-xl px-5 py-3 text-sm focus:outline-none focus:border-gray-400 placeholder-gray-400 bg-white"
+              className="flex-1 border border-gray-200 rounded-lg px-5 py-3 text-sm focus:outline-none focus:border-gray-400 placeholder-gray-400 bg-white"
             />
             <button
               type="submit"
-              className="bg-blue-500 hover:bg-blue-600 text-white rounded-xl h-11 w-14 flex items-center justify-center transition-colors shadow-sm flex-shrink-0"
+              disabled={isGenerating}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg h-11 px-5 flex items-center justify-center transition-colors shadow-sm flex-shrink-0 text-sm font-semibold"
             >
-              <Image src="/icons/envoyer.png" alt="Envoyer" width={16} height={16} className="brightness-0 invert transform rotate-90" />
+              {isGenerating ? '...' : 'Envoyer'}
             </button>
           </form>
         </div>
       </div>
 
-      <div 
+      <div
         className={`border-l border-gray-200 flex flex-col bg-white h-full flex-shrink-0 transition-all duration-300 ${
-          isSettingsOpen ? 'w-72 opacity-100' : 'w-0 opacity-0 pointer-events-none border-l-0'
+          isSettingsOpen
+            ? 'w-72 opacity-100'
+            : 'w-0 opacity-0 pointer-events-none border-l-0'
         }`}
       >
         <div className="w-72 flex flex-col h-full">
-          <div className="px-6 py-5 border-b border-gray-200 flex items-center gap-2.5">
-            <h2 className="text-lg font-bold text-gray-900">Paramètres</h2>
+          <div className="px-6 py-5 border-b border-gray-200">
+            <h2 className="text-lg font-bold text-gray-900">Réglages</h2>
+            <p className="text-xs text-gray-500 mt-1">Contexte envoyé à Gemini.</p>
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-8 text-sm">
             <div>
-              <h3 className="text-gray-500 font-medium mb-4 text-xs">Type de contenu</h3>
-              <div className="space-y-4">
-                {[
-                  { id: 'blog', label: 'Article de blog' },
-                  { id: 'linkedin', label: 'Post LinkedIn' },
-                  { id: 'newsletter', label: 'Newsletter' },
-                ].map((item) => (
-                  <label key={item.id} className="flex items-center gap-3 cursor-pointer text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={contentType === item.id}
-                      onChange={() => setContentType(item.id as any)}
-                      className="w-4 h-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium">{item.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-gray-500 font-medium mb-4 text-xs">Ton</h3>
-              <div className="space-y-4">
-                {[
-                  { id: 'professionnel', label: 'Professionnel' },
-                  { id: 'expert', label: 'Expert' },
-                  { id: 'storytelling', label: 'Storytelling' },
-                ].map((item) => (
-                  <label key={item.id} className="flex items-center gap-3 cursor-pointer text-gray-700">
+              <h3 className="text-gray-500 font-medium mb-4 text-xs uppercase">
+                Type de contenu
+              </h3>
+              <div className="space-y-3">
+                {contentTypeOptions.map((item) => (
+                  <label
+                    key={item.id}
+                    className="flex items-center gap-3 cursor-pointer text-gray-700"
+                  >
                     <input
                       type="radio"
-                      name="tone"
-                      checked={tone === item.id}
-                      onChange={() => setTone(item.id as any)}
+                      name="contentType"
+                      checked={contentType === item.id}
+                      onChange={() => setContentType(item.id)}
                       className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                     />
                     <span className="text-sm font-medium">{item.label}</span>
@@ -168,19 +295,41 @@ export default function RedactionPage() {
             </div>
 
             <div>
-              <h3 className="text-gray-500 font-medium mb-4 text-xs">Longueur</h3>
-              <div className="space-y-4">
-                {[
-                  { id: 'court', label: 'Court (300-500 mots)' },
-                  { id: 'moyen', label: 'Moyen (500-1000 mots)' },
-                  { id: 'long', label: 'Long (1000+ mots)' },
-                ].map((item) => (
-                  <label key={item.id} className="flex items-center gap-3 cursor-pointer text-gray-700">
+              <h3 className="text-gray-500 font-medium mb-4 text-xs uppercase">Ton</h3>
+              <div className="space-y-3">
+                {toneOptions.map((item) => (
+                  <label
+                    key={item.id}
+                    className="flex items-center gap-3 cursor-pointer text-gray-700"
+                  >
+                    <input
+                      type="radio"
+                      name="tone"
+                      checked={tone === item.id}
+                      onChange={() => setTone(item.id)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-gray-500 font-medium mb-4 text-xs uppercase">
+                Longueur
+              </h3>
+              <div className="space-y-3">
+                {lengthOptions.map((item) => (
+                  <label
+                    key={item.id}
+                    className="flex items-center gap-3 cursor-pointer text-gray-700"
+                  >
                     <input
                       type="radio"
                       name="length"
                       checked={length === item.id}
-                      onChange={() => setLength(item.id as any)}
+                      onChange={() => setLength(item.id)}
                       className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                     />
                     <span className="text-sm font-medium">{item.label}</span>
