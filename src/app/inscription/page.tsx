@@ -82,7 +82,7 @@ export default function InscriptionPage() {
             type="text"
             value={displayName}
             onChange={(event) => setDisplayName(event.target.value)}
-            className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400"
+            className="w-full text-sm border border-gray-200 rounded-lg p-2.5 text-gray-500 focus:outline-none focus:border-gray-400"
             autoComplete="name"
           />
         </div>
@@ -95,7 +95,7 @@ export default function InscriptionPage() {
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400"
+            className="w-full text-sm border border-gray-200 rounded-lg p-2.5 text-gray-500 focus:outline-none focus:border-gray-400"
             autoComplete="email"
             required
           />
@@ -109,7 +109,7 @@ export default function InscriptionPage() {
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400"
+            className="w-full text-sm border border-gray-200 rounded-lg p-2.5 text-gray-500 focus:outline-none focus:border-gray-400"
             autoComplete="new-password"
             minLength={8}
             required

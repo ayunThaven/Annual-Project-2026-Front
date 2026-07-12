@@ -1,77 +1,81 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { FormEvent, useState } from 'react';
-import { ApiError, generateText } from '@/lib/api';
+import Image from "next/image";
+import Link from "next/link";
+import { FormEvent, useState } from "react";
+import { ApiError, generateContent, getCurrentAgency } from "@/lib/api";
 
-type ContentType = 'blog' | 'linkedin' | 'newsletter';
-type Tone = 'professionnel' | 'expert' | 'storytelling';
-type ContentLength = 'court' | 'moyen' | 'long';
+type ContentType = "blog" | "linkedin" | "newsletter";
+type Tone = "professionnel" | "expert" | "storytelling";
+type ContentLength = "court" | "moyen" | "long";
 
 type ChatMessage = {
   id: number;
-  sender: 'ai' | 'user';
+  sender: "ai" | "user";
   text: string;
   time: string;
   model?: string;
 };
 
 const contentTypeOptions: Array<{ id: ContentType; label: string }> = [
-  { id: 'blog', label: 'Article de blog' },
-  { id: 'linkedin', label: 'Post LinkedIn' },
-  { id: 'newsletter', label: 'Newsletter' },
+  { id: "blog", label: "Article de blog" },
+  { id: "linkedin", label: "Post LinkedIn" },
+  { id: "newsletter", label: "Newsletter" },
 ];
 
 const toneOptions: Array<{ id: Tone; label: string }> = [
-  { id: 'professionnel', label: 'Professionnel' },
-  { id: 'expert', label: 'Expert' },
-  { id: 'storytelling', label: 'Storytelling' },
+  { id: "professionnel", label: "Professionnel" },
+  { id: "expert", label: "Expert" },
+  { id: "storytelling", label: "Storytelling" },
 ];
 
-const lengthOptions: Array<{ id: ContentLength; label: string; maxTokens: number }> = [
-  { id: 'court', label: 'Court', maxTokens: 600 },
-  { id: 'moyen', label: 'Moyen', maxTokens: 1200 },
-  { id: 'long', label: 'Long', maxTokens: 2200 },
+const lengthOptions: Array<{
+  id: ContentLength;
+  label: string;
+  maxTokens: number;
+}> = [
+  { id: "court", label: "Court", maxTokens: 600 },
+  { id: "moyen", label: "Moyen", maxTokens: 1200 },
+  { id: "long", label: "Long", maxTokens: 2200 },
 ];
 
 function formatTime() {
-  return new Intl.DateTimeFormat('fr-FR', {
-    hour: '2-digit',
-    minute: '2-digit',
+  return new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(new Date());
 }
 
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
     if (error.status === 401) {
-      return 'Vous devez être connecté pour utiliser la rédaction IA.';
+      return "Vous devez être connecté pour utiliser la rédaction IA.";
     }
 
-    if (error.status === 400 && error.message.includes('not configured')) {
+    if (error.status === 400 && error.message.includes("not configured")) {
       return "Gemini n'est pas encore configuré côté serveur.";
     }
 
     return error.message;
   }
 
-  return 'Impossible de générer le contenu pour le moment.';
+  return "Impossible de générer le contenu pour le moment.";
 }
 
 export default function RedactionPage() {
-  const [contentType, setContentType] = useState<ContentType>('blog');
-  const [tone, setTone] = useState<Tone>('professionnel');
-  const [length, setLength] = useState<ContentLength>('moyen');
-  const [inputMessage, setInputMessage] = useState('');
+  const [contentType, setContentType] = useState<ContentType>("blog");
+  const [tone, setTone] = useState<Tone>("professionnel");
+  const [length, setLength] = useState<ContentLength>("moyen");
+  const [inputMessage, setInputMessage] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 1,
-      sender: 'ai',
-      text: 'Bonjour. Décrivez le contenu à produire, et Gemini générera une première version structurée.',
-      time: '',
+      sender: "ai",
+      text: "Bonjour. Décrivez le contenu à produire, et Gemini générera une première version structurée.",
+      time: "",
     },
   ]);
 
@@ -81,7 +85,7 @@ export default function RedactionPage() {
   const selectedTone = toneOptions.find((option) => option.id === tone);
   const selectedLength = lengthOptions.find((option) => option.id === length);
   const needsAuthentication =
-    error === 'Vous devez être connecté pour utiliser la rédaction IA.';
+    error === "Vous devez être connecté pour utiliser la rédaction IA.";
 
   async function handleSendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -94,26 +98,29 @@ export default function RedactionPage() {
 
     const userMessage: ChatMessage = {
       id: Date.now(),
-      sender: 'user',
+      sender: "user",
       text: prompt,
       time: formatTime(),
     };
 
     setMessages((currentMessages) => [...currentMessages, userMessage]);
-    setInputMessage('');
+    setInputMessage("");
     setError(null);
     setIsGenerating(true);
 
     try {
-      const result = await generateText({
-        provider: 'gemini',
-        prompt,
-        context: [
-          `Type de contenu: ${selectedContentType?.label ?? contentType}`,
-          `Ton: ${selectedTone?.label ?? tone}`,
-          `Longueur: ${selectedLength?.label ?? length}`,
-        ].join('\n'),
-        temperature: tone === 'storytelling' ? 0.8 : 0.5,
+      const currentAgency = await getCurrentAgency();
+
+      const result = await generateContent(currentAgency.agency.id, {
+        title: prompt.slice(0, 200),
+        brief: prompt,
+        contentType: selectedContentType?.label ?? contentType,
+        channel: selectedContentType?.label ?? contentType,
+        tone: selectedTone?.label ?? tone,
+        language: "francais",
+        saveDraft: true,
+        provider: "gemini",
+        temperature: tone === "storytelling" ? 0.8 : 0.5,
         maxTokens: selectedLength?.maxTokens ?? 1200,
       });
 
@@ -121,10 +128,10 @@ export default function RedactionPage() {
         ...currentMessages,
         {
           id: Date.now() + 1,
-          sender: 'ai',
+          sender: "ai",
           text: result.content,
           time: formatTime(),
-          model: result.model,
+          model: result.ai.model,
         },
       ]);
     } catch (caughtError) {
@@ -134,7 +141,7 @@ export default function RedactionPage() {
         ...currentMessages,
         {
           id: Date.now() + 1,
-          sender: 'ai',
+          sender: "ai",
           text: message,
           time: formatTime(),
         },
@@ -158,9 +165,7 @@ export default function RedactionPage() {
             />
             <div>
               <h1 className="font-bold text-gray-900 text-lg">Rédaction IA</h1>
-              <p className="text-xs text-gray-500">
-                Assistant Gemini.
-              </p>
+              <p className="text-xs text-gray-500">Assistant Gemini.</p>
             </div>
           </div>
 
@@ -169,8 +174,8 @@ export default function RedactionPage() {
             onClick={() => setIsSettingsOpen(!isSettingsOpen)}
             className={`px-3 py-2 rounded-lg border transition-all text-sm font-semibold ${
               isSettingsOpen
-                ? 'bg-blue-50 border-blue-200 text-blue-600'
-                : 'hover:bg-gray-100 border-gray-200 text-gray-700'
+                ? "bg-blue-50 border-blue-200 text-blue-600"
+                : "hover:bg-gray-100 border-gray-200 text-gray-700"
             }`}
           >
             Réglages
@@ -204,14 +209,14 @@ export default function RedactionPage() {
             <div
               key={message.id}
               className={`flex flex-col w-full ${
-                message.sender === 'user' ? 'items-end' : 'items-start'
+                message.sender === "user" ? "items-end" : "items-start"
               }`}
             >
               <div
                 className={`border rounded-lg p-5 relative max-w-3xl ${
-                  message.sender === 'user'
-                    ? 'bg-blue-600 border-blue-600 text-white'
-                    : 'bg-white border-gray-200 text-gray-900'
+                  message.sender === "user"
+                    ? "bg-blue-600 border-blue-600 text-white"
+                    : "bg-white border-gray-200 text-gray-900"
                 }`}
               >
                 <p className="text-sm leading-relaxed whitespace-pre-line">
@@ -219,7 +224,9 @@ export default function RedactionPage() {
                 </p>
                 <div
                   className={`text-[10px] mt-3 flex justify-end gap-2 ${
-                    message.sender === 'user' ? 'text-blue-100' : 'text-gray-400'
+                    message.sender === "user"
+                      ? "text-blue-100"
+                      : "text-gray-400"
                   }`}
                 >
                   {message.model ? <span>{message.model}</span> : null}
@@ -251,7 +258,7 @@ export default function RedactionPage() {
               disabled={isGenerating}
               className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg h-11 px-5 flex items-center justify-center transition-colors shadow-sm flex-shrink-0 text-sm font-semibold"
             >
-              {isGenerating ? '...' : 'Envoyer'}
+              {isGenerating ? "..." : "Envoyer"}
             </button>
           </form>
         </div>
@@ -260,14 +267,16 @@ export default function RedactionPage() {
       <div
         className={`border-l border-gray-200 flex flex-col bg-white h-full flex-shrink-0 transition-all duration-300 ${
           isSettingsOpen
-            ? 'w-72 opacity-100'
-            : 'w-0 opacity-0 pointer-events-none border-l-0'
+            ? "w-72 opacity-100"
+            : "w-0 opacity-0 pointer-events-none border-l-0"
         }`}
       >
         <div className="w-72 flex flex-col h-full">
           <div className="px-6 py-5 border-b border-gray-200">
             <h2 className="text-lg font-bold text-gray-900">Réglages</h2>
-            <p className="text-xs text-gray-500 mt-1">Contexte envoyé à Gemini.</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Contexte envoyé à Gemini.
+            </p>
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-8 text-sm">
@@ -295,7 +304,9 @@ export default function RedactionPage() {
             </div>
 
             <div>
-              <h3 className="text-gray-500 font-medium mb-4 text-xs uppercase">Ton</h3>
+              <h3 className="text-gray-500 font-medium mb-4 text-xs uppercase">
+                Ton
+              </h3>
               <div className="space-y-3">
                 {toneOptions.map((item) => (
                   <label

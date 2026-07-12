@@ -249,3 +249,67 @@ export function updateMemberRole(membershipId: string, role: AgencyRole) {
     body: { role },
   });
 }
+
+export type ContentStatus =
+  | 'IDEA'
+  | 'DRAFT'
+  | 'IN_REVIEW'
+  | 'SCHEDULED'
+  | 'PUBLISHED';
+
+export type ContentItem = {
+  id: string;
+  title: string;
+  status: ContentStatus;
+  publicationDate?: string | null;
+  channel?: string | null;
+  contentType?: string | null;
+  url?: string | null;
+  tags?: string[] | null;
+  notes?: string | null;
+  body?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type GenerateContentInput = {
+  title: string;
+  brief?: string;
+  contentType?: string;
+  channel?: string;
+  targetAudience?: string;
+  tone?: string;
+  language?: string;
+  keywords?: string[];
+  outline?: string[];
+  callToAction?: string;
+  constraints?: string;
+  saveDraft?: boolean;
+  provider?: string;
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+};
+
+export type GenerateContentResponse = {
+  content: string;
+  item?: ContentItem;
+  ai: {
+    provider: string;
+    model: string;
+    usage?: AiUsage;
+  };
+};
+
+export function generateContent(
+  agencyId: string,
+  input: GenerateContentInput,
+) {
+  return apiRequest<GenerateContentResponse>(
+    `/agencies/${agencyId}/content/generate`,
+    {
+      method: 'POST',
+      body: input,
+    },
+  );
+}
