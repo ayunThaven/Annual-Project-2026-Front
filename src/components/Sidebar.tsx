@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { ApiError, getProfile, logout, PublicUser } from '@/lib/api';
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { ApiError, getProfile, logout, PublicUser } from "@/lib/api";
 
 interface NavItem {
   icon: string;
@@ -14,13 +14,26 @@ interface NavItem {
 }
 
 const navigationItems: NavItem[] = [
-  { icon: '/icons/tableau-de-bord.png', label: 'Tableau de bord', href: '/dashboard' },
-  { icon: '/icons/redaction.png', label: 'Redaction', href: '/redaction' },
-  { icon: '/icons/curration.png', label: 'Curation', href: '/curation' },
-  { icon: '/icons/contenus.png', label: 'Mes contenus', href: '/contenus' },
-  { icon: '/icons/idees.png', label: 'Idees IA', href: '/idees', hasBadge: true },
-  { icon: '/icons/equipe.png', label: 'Equipe', href: '/equipe' },
-  { icon: '/icons/integrations.png', label: 'Integrations', href: '/integrations' },
+  {
+    icon: "/icons/tableau-de-bord.png",
+    label: "Tableau de bord",
+    href: "/dashboard",
+  },
+  { icon: "/icons/redaction.png", label: "Redaction", href: "/redaction" },
+  { icon: "/icons/curration.png", label: "Curation", href: "/curation" },
+  { icon: "/icons/contenus.png", label: "Mes contenus", href: "/contenus" },
+  {
+    icon: "/icons/idees.png",
+    label: "Idees IA",
+    href: "/idees",
+    hasBadge: true,
+  },
+  { icon: "/icons/equipe.png", label: "Equipe", href: "/equipe" },
+  {
+    icon: "/icons/integrations.png",
+    label: "Integrations",
+    href: "/integrations",
+  },
 ];
 
 export default function Sidebar() {
@@ -46,7 +59,10 @@ export default function Sidebar() {
         }
       } catch (caughtError) {
         if (!ignoreResult) {
-          if (!(caughtError instanceof ApiError) || caughtError.status !== 401) {
+          if (
+            !(caughtError instanceof ApiError) ||
+            caughtError.status !== 401
+          ) {
             console.error(caughtError);
           }
 
@@ -72,7 +88,7 @@ export default function Sidebar() {
     try {
       await logout();
       setUser(null);
-      router.push('/connexion');
+      router.push("/connexion");
       router.refresh();
     } finally {
       setIsLoggingOut(false);
@@ -80,10 +96,10 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col flex-shrink-0">
+    <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col shrink-0">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+          <div className="w-10 h-10 bg-linear-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
             S
           </div>
           <h1 className="font-bold text-gray-700 text-lg">SEO Genius</h1>
@@ -99,8 +115,8 @@ export default function Sidebar() {
               href={item.href}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
                 active
-                  ? 'bg-gray-100 text-gray-900 font-bold'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 font-medium'
+                  ? "bg-gray-100 text-gray-900 font-bold"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 font-medium"
               }`}
             >
               <Image
@@ -108,7 +124,7 @@ export default function Sidebar() {
                 alt={item.label}
                 width={20}
                 height={20}
-                className={`w-5 h-5 ${active ? 'opacity-100' : 'opacity-75'}`}
+                className={`w-5 h-5 ${active ? "opacity-100" : "opacity-75"}`}
               />
               <span className="text-sm">{item.label}</span>
             </Link>
@@ -133,9 +149,9 @@ export default function Sidebar() {
             <Link
               href="/profil"
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
-                isSelected('/profil')
-                  ? 'bg-gray-100 text-gray-900 font-bold'
-                  : 'text-gray-600 hover:bg-gray-100 font-medium'
+                isSelected("/profil")
+                  ? "bg-gray-100 text-gray-900 font-bold"
+                  : "text-gray-600 hover:bg-gray-100 font-medium"
               }`}
             >
               <Image
@@ -154,9 +170,15 @@ export default function Sidebar() {
               disabled={isLoggingOut}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-gray-600 hover:bg-gray-100 font-medium disabled:text-gray-300"
             >
-              <span className="w-5 h-5 flex items-center justify-center text-sm">x</span>
+              <Image
+                src="/icons/x.png"
+                alt=""
+                width={20}
+                height={20}
+                className="w-5 h-5 opacity-75"
+              />
               <span className="text-sm">
-                {isLoggingOut ? 'Deconnexion...' : 'Deconnexion'}
+                {isLoggingOut ? "Deconnexion..." : "Deconnexion"}
               </span>
             </button>
           </>
@@ -165,9 +187,9 @@ export default function Sidebar() {
             <Link
               href="/connexion"
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
-                isSelected('/connexion')
-                  ? 'bg-gray-100 text-gray-900 font-bold'
-                  : 'text-gray-600 hover:bg-gray-100 font-medium'
+                isSelected("/connexion")
+                  ? "bg-gray-100 text-gray-900 font-bold"
+                  : "text-gray-600 hover:bg-gray-100 font-medium"
               }`}
             >
               <Image
@@ -183,12 +205,17 @@ export default function Sidebar() {
             <Link
               href="/inscription"
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
-                isSelected('/inscription')
-                  ? 'bg-gray-100 text-gray-900 font-bold'
-                  : 'text-gray-600 hover:bg-gray-100 font-medium'
+                isSelected("/inscription")
+                  ? "bg-gray-100 text-gray-900 font-bold"
+                  : "text-gray-600 hover:bg-gray-100 font-medium"
               }`}
             >
-              <span className="w-5 h-5 flex items-center justify-center text-sm">+</span>
+              <Image
+                src="/icons/creer.png"
+                alt=""
+                width={16}
+                height={16}
+              />
               <span className="text-sm">Inscription</span>
             </Link>
           </>
@@ -197,9 +224,9 @@ export default function Sidebar() {
         <Link
           href="/parametres"
           className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
-            isSelected('/parametres')
-              ? 'bg-gray-100 text-gray-900 font-bold'
-              : 'text-gray-600 hover:bg-gray-100 font-medium'
+            isSelected("/parametres")
+              ? "bg-gray-100 text-gray-900 font-bold"
+              : "text-gray-600 hover:bg-gray-100 font-medium"
           }`}
         >
           <Image

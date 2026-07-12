@@ -77,7 +77,7 @@ export default function ConnexionPage() {
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400"
+            className="w-full text-sm border border-gray-200 rounded-lg p-2.5 text-gray-500 focus:outline-none focus:border-gray-400"
             autoComplete="email"
             required
           />
@@ -91,7 +91,7 @@ export default function ConnexionPage() {
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400"
+            className="w-full text-sm border border-gray-200 rounded-lg p-2.5 text-gray-500 focus:outline-none focus:border-gray-400"
             autoComplete="current-password"
             required
           />
