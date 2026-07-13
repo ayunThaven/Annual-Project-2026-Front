@@ -313,3 +313,133 @@ export function generateContent(
     },
   );
 }
+
+export type CurationStatus = 'TO_REVIEW' | 'REVIEWED' | 'SHARED';
+
+export type FeedSource = {
+  id: string;
+  url: string;
+  name?: string | null;
+  defaultTopics?: string[] | null;
+  enabled: boolean;
+  lastFetchedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type CreateFeedSourceInput = {
+  url: string;
+  name?: string;
+  defaultTopics?: string[];
+};
+
+export type UpdateFeedSourceInput = Partial<CreateFeedSourceInput> & {
+  enabled?: boolean;
+};
+
+export type IngestionSummary = {
+  imported: number;
+  skipped: number;
+};
+
+export function listFeedSources(agencyId: string) {
+  return apiRequest<FeedSource[]>(`/agencies/${agencyId}/curation/feeds`);
+}
+
+export function createFeedSource(
+  agencyId: string,
+  input: CreateFeedSourceInput,
+) {
+  return apiRequest<FeedSource>(`/agencies/${agencyId}/curation/feeds`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export function updateFeedSource(
+  agencyId: string,
+  id: string,
+  input: UpdateFeedSourceInput,
+) {
+  return apiRequest<FeedSource>(`/agencies/${agencyId}/curation/feeds/${id}`, {
+    method: 'PATCH',
+    body: input,
+  });
+}
+
+export function removeFeedSource(agencyId: string, id: string) {
+  return apiRequest<{ success: true }>(
+    `/agencies/${agencyId}/curation/feeds/${id}`,
+    { method: 'DELETE' },
+  );
+}
+
+export function ingestFeedSource(agencyId: string, id: string) {
+  return apiRequest<IngestionSummary>(
+    `/agencies/${agencyId}/curation/feeds/${id}/ingest`,
+    { method: 'POST' },
+  );
+}
+
+export function ingestAllFeedSources(agencyId: string) {
+  return apiRequest<IngestionSummary>(
+    `/agencies/${agencyId}/curation/feeds/ingest`,
+    { method: 'POST' },
+  );
+}
+
+export type CurationItem = {
+  id: string;
+  title: string;
+  sourceUrl?: string | null;
+  source?: string | null;
+  topics?: string[] | null;
+  status: CurationStatus;
+  curatedBy?: string | null;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type CreateCurationItemInput = {
+  title: string;
+  sourceUrl?: string;
+  source?: string;
+  topics?: string[];
+  status?: CurationStatus;
+  curatedBy?: string;
+  notes?: string;
+};
+
+export type UpdateCurationItemInput = Partial<CreateCurationItemInput>;
+
+export function listCurationItems(agencyId: string) {
+  return apiRequest<CurationItem[]>(`/agencies/${agencyId}/curation`);
+}
+
+export function createCurationItem(
+  agencyId: string,
+  input: CreateCurationItemInput,
+) {
+  return apiRequest<CurationItem>(`/agencies/${agencyId}/curation`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export function updateCurationItem(
+  agencyId: string,
+  id: string,
+  input: UpdateCurationItemInput,
+) {
+  return apiRequest<CurationItem>(`/agencies/${agencyId}/curation/${id}`, {
+    method: 'PATCH',
+    body: input,
+  });
+}
+
+export function removeCurationItem(agencyId: string, id: string) {
+  return apiRequest<{ success: true }>(`/agencies/${agencyId}/curation/${id}`, {
+    method: 'DELETE',
+  });
+}
