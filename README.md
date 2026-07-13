@@ -1,4 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SEO Genius Front
+
+Frontend Next.js de SEO Genius. Il consomme l'API Nest du dossier
+`projet-annuel-back`.
+
+## Connexion au back
+
+Le front utilise `NEXT_PUBLIC_API_URL` pour appeler le back. En local :
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+```
+
+Le fichier `.env.local` est deja configure avec cette valeur.
+
+Demarrage recommande :
+
+```bash
+# Terminal 1 - back
+cd ../projet-annuel-back
+npm run migration:run
+npm run start:dev
+
+# Terminal 2 - front
+cd ../Annual-Project-2026-Front
+npm run dev
+```
+
+Pour tester les idees sans cle Gemini, mettre `AI_PROVIDER=demo` cote back.
 
 ## Getting Started
 

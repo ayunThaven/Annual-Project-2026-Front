@@ -90,6 +90,115 @@ export type AiCompletionResult = {
   usage?: AiUsage;
 };
 
+export type ContentStatus =
+  | 'IDEA'
+  | 'DRAFT'
+  | 'IN_REVIEW'
+  | 'SCHEDULED'
+  | 'PUBLISHED';
+
+export type SyncStatus = 'PENDING' | 'SYNCED' | 'ERROR' | 'CONFLICT';
+
+export type ContentItem = {
+  id: string;
+  title: string;
+  status: ContentStatus;
+  publicationDate?: string | null;
+  channel?: string | null;
+  contentType?: string | null;
+  url?: string | null;
+  tags?: string[] | null;
+  notes?: string | null;
+  syncStatus?: SyncStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ContentIdeaSource = 'MANUAL' | 'SCHEDULED';
+export type ContentIdeaStatus = 'NEW' | 'ACCEPTED' | 'DISMISSED';
+export type DuplicateStatus = 'UNIQUE' | 'POSSIBLE_DUPLICATE' | 'DUPLICATE';
+export type IdeaGenerationCadence = 'DAILY' | 'WEEKLY';
+export type IdeaGenerationRunStatus = 'SUCCESS' | 'ERROR';
+
+export type SimilarIdeaItem = {
+  id: string;
+  type: 'CONTENT' | 'CURATION' | 'IDEA';
+  title: string;
+  score: number;
+};
+
+export type ContentIdea = {
+  id: string;
+  title: string;
+  angle?: string | null;
+  contentType?: string | null;
+  keywords?: string[] | null;
+  searchIntent?: string | null;
+  rationale?: string | null;
+  duplicateScore: number;
+  duplicateStatus: DuplicateStatus;
+  similarItems?: SimilarIdeaItem[] | null;
+  source: ContentIdeaSource;
+  status: ContentIdeaStatus;
+  acceptedContent?: ContentItem | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type IdeaGenerationRun = {
+  id: string;
+  source: ContentIdeaSource;
+  status: IdeaGenerationRunStatus;
+  generatedCount: number;
+  errorMessage?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+};
+
+export type ContentIdeasResponse = {
+  ideas: ContentIdea[];
+  run: IdeaGenerationRun;
+};
+
+export type GenerateContentIdeasInput = {
+  theme: string;
+  sector?: string;
+  count?: 3 | 5 | 10;
+  checkDuplicates?: boolean;
+};
+
+export type IdeaGenerationSettings = {
+  id: string;
+  enabled: boolean;
+  cadence: IdeaGenerationCadence;
+  timeOfDay: string;
+  weekday?: number | null;
+  timezone: string;
+  theme?: string | null;
+  sector?: string | null;
+  count: 3 | 5 | 10;
+  checkDuplicates: boolean;
+  nextRunAt?: string | null;
+  lastRunAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UpdateIdeaGenerationSettingsInput = Partial<
+  Pick<
+    IdeaGenerationSettings,
+    | 'enabled'
+    | 'cadence'
+    | 'timeOfDay'
+    | 'weekday'
+    | 'timezone'
+    | 'theme'
+    | 'sector'
+    | 'count'
+    | 'checkDuplicates'
+  >
+>;
+
 export type GenerateTextInput = {
   prompt: string;
   context?: string;
@@ -188,6 +297,85 @@ export function generateText(input: GenerateTextInput) {
     method: 'POST',
     body: input,
   });
+}
+
+export function listContentItems(agencyId: string) {
+  return apiRequest<ContentItem[]>(`/agencies/${agencyId}/content`);
+}
+
+export function createContentItem(
+  agencyId: string,
+  input: {
+    title: string;
+    status?: ContentStatus;
+    publicationDate?: string;
+    channel?: string;
+    contentType?: string;
+    url?: string;
+    tags?: string[];
+    notes?: string;
+  },
+) {
+  return apiRequest<ContentItem>(`/agencies/${agencyId}/content`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export function listContentIdeas(agencyId: string) {
+  return apiRequest<ContentIdea[]>(`/agencies/${agencyId}/ideas`);
+}
+
+export function generateContentIdeas(
+  agencyId: string,
+  input: GenerateContentIdeasInput,
+) {
+  return apiRequest<ContentIdeasResponse>(
+    `/agencies/${agencyId}/ideas/generate`,
+    {
+      method: 'POST',
+      body: input,
+    },
+  );
+}
+
+export function updateContentIdea(
+  agencyId: string,
+  ideaId: string,
+  input: { status?: ContentIdeaStatus },
+) {
+  return apiRequest<ContentIdea>(`/agencies/${agencyId}/ideas/${ideaId}`, {
+    method: 'PATCH',
+    body: input,
+  });
+}
+
+export function acceptContentIdea(agencyId: string, ideaId: string) {
+  return apiRequest<ContentIdea>(
+    `/agencies/${agencyId}/ideas/${ideaId}/accept`,
+    {
+      method: 'POST',
+    },
+  );
+}
+
+export function getIdeaGenerationSettings(agencyId: string) {
+  return apiRequest<IdeaGenerationSettings>(
+    `/agencies/${agencyId}/ideas/settings`,
+  );
+}
+
+export function updateIdeaGenerationSettings(
+  agencyId: string,
+  input: UpdateIdeaGenerationSettingsInput,
+) {
+  return apiRequest<IdeaGenerationSettings>(
+    `/agencies/${agencyId}/ideas/settings`,
+    {
+      method: 'PATCH',
+      body: input,
+    },
+  );
 }
 
 export function getCurrentAgency() {
