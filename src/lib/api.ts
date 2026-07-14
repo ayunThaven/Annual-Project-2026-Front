@@ -350,6 +350,10 @@ export function listContentItems(agencyId: string) {
   return apiRequest<ContentItem[]>(`/agencies/${agencyId}/content`);
 }
 
+export function getContentItem(agencyId: string, contentId: string) {
+  return apiRequest<ContentItem>(`/agencies/${agencyId}/content/${contentId}`);
+}
+
 export function createContentItem(
   agencyId: string,
   input: {
@@ -365,6 +369,30 @@ export function createContentItem(
 ) {
   return apiRequest<ContentItem>(`/agencies/${agencyId}/content`, {
     method: 'POST',
+    body: input,
+  });
+}
+
+export function updateContentItem(
+  agencyId: string,
+  contentId: string,
+  input: Partial<
+    Pick<
+      ContentItem,
+      | 'title'
+      | 'status'
+      | 'publicationDate'
+      | 'channel'
+      | 'contentType'
+      | 'url'
+      | 'tags'
+      | 'notes'
+      | 'body'
+    >
+  >,
+) {
+  return apiRequest<ContentItem>(`/agencies/${agencyId}/content/${contentId}`, {
+    method: 'PATCH',
     body: input,
   });
 }

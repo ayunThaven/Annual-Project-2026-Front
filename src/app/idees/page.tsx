@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Modal from '@/components/Modal';
 import {
@@ -74,6 +75,7 @@ function mergeIdeas(currentIdeas: ContentIdea[], nextIdeas: ContentIdea[]) {
 }
 
 export default function IdeesPage() {
+  const router = useRouter();
   const [currentAgency, setCurrentAgency] = useState<CurrentAgency | null>(null);
   const [ideas, setIdeas] = useState<ContentIdea[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -119,6 +121,15 @@ export default function IdeesPage() {
   useEffect(() => {
     void loadIdeas();
   }, []);
+
+  useEffect(() => {
+    if (
+      currentAgency &&
+      new URLSearchParams(window.location.search).get('generate') === '1'
+    ) {
+      setIsGenerateModalOpen(true);
+    }
+  }, [currentAgency]);
 
   async function handleGenerate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -166,7 +177,12 @@ export default function IdeesPage() {
           currentIdea.id === updatedIdea.id ? updatedIdea : currentIdea,
         ),
       );
-      setSuccess('Idee ajoutee aux contenus.');
+      const contentId = updatedIdea.acceptedContent?.id;
+      if (contentId) {
+        router.push(`/redaction?contentId=${contentId}`);
+      } else {
+        setSuccess('Idée ajoutée aux contenus.');
+      }
     } catch (caughtError) {
       setError(getErrorMessage(caughtError));
     } finally {
@@ -200,8 +216,8 @@ export default function IdeesPage() {
 
   return (
     <div className="w-full">
-      <div className="bg-white border-b border-gray-200 px-8 py-4 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-4 sm:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
               Idees de contenu IA
@@ -218,7 +234,7 @@ export default function IdeesPage() {
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-2 px-5 rounded-lg text-sm transition-colors flex items-center gap-2"
           >
             <span>+</span>
-            <span>Generer</span>
+            <span>Générer</span>
           </button>
         </div>
 
@@ -244,7 +260,7 @@ export default function IdeesPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-8 py-8 space-y-4">
+      <div className="mx-auto max-w-7xl space-y-4 px-4 py-6 sm:px-8 sm:py-8">
         {isLoading ? (
           <div className="bg-white border border-gray-200 rounded-lg p-6 text-sm text-gray-500">
             Chargement des idees...
@@ -380,22 +396,33 @@ export default function IdeesPage() {
               </div>
 
               <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
-                <button
-                  type="button"
-                  onClick={() => void handleDismiss(idea)}
-                  disabled={idea.status !== 'NEW' || dismissingId === idea.id}
-                  className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:text-gray-300"
-                >
-                  {dismissingId === idea.id ? '...' : 'Ignorer'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleAccept(idea)}
-                  disabled={idea.status !== 'NEW' || acceptingId === idea.id}
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-gray-300"
-                >
-                  {acceptingId === idea.id ? 'Ajout...' : 'Ajouter aux contenus'}
-                </button>
+                {idea.status === 'ACCEPTED' && idea.acceptedContent ? (
+                  <Link
+                    href={`/redaction?contentId=${idea.acceptedContent.id}`}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                  >
+                    Ouvrir dans Rédaction
+                  </Link>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => void handleDismiss(idea)}
+                      disabled={idea.status !== 'NEW' || dismissingId === idea.id}
+                      className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:text-gray-300"
+                    >
+                      {dismissingId === idea.id ? '...' : 'Ignorer'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleAccept(idea)}
+                      disabled={idea.status !== 'NEW' || acceptingId === idea.id}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-gray-300"
+                    >
+                      {acceptingId === idea.id ? 'Préparation...' : 'Préparer ce contenu'}
+                    </button>
+                  </>
+                )}
               </div>
             </article>
           ))}

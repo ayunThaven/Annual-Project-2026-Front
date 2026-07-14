@@ -1,4 +1,4 @@
-import Sidebar from '@/components/Sidebar';
+import AppShell from '@/components/AppShell';
 import './globals.css'; 
 
 export const metadata = {
@@ -14,13 +14,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body>
-        <div className="flex h-screen bg-gray-50 overflow-hidden">
-          <Sidebar />
-
-          <main className="flex-1 overflow-auto">
-            {children}
-          </main>
-        </div>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

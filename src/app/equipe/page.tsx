@@ -146,7 +146,7 @@ export default function EquipePage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              Gestion de l'équipe
+              Gestion de l&apos;équipe
             </h1>
             <p className="text-gray-500 text-xs mt-0.5">
               {currentAgency
@@ -170,7 +170,7 @@ export default function EquipePage() {
       <div className="max-w-7xl mx-auto px-8 py-8 space-y-4">
         {isLoading && (
           <div className="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-500 shadow-sm">
-            Chargement de l'agence...
+            Chargement de l&apos;agence...
           </div>
         )}
 
@@ -186,7 +186,7 @@ export default function EquipePage() {
               Aucune agence active
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              Créez votre première agence dans les paramètres pour activer la gestion d'équipe.
+              Créez votre première agence dans les paramètres pour activer la gestion d&apos;équipe.
             </p>
 
             <Link
@@ -348,7 +348,7 @@ export default function EquipePage() {
           {lastInvitationLink && (
             <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">
               <p className="mb-2 text-xs font-semibold text-blue-700">
-                Lien d'acceptation généré
+                Lien d&apos;acceptation généré
               </p>
               <input
                 type="text"

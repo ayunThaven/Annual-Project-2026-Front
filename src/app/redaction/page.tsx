@@ -2,8 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
-import { ApiError, generateContent, getCurrentAgency } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import {
+  ApiError,
+  ContentItem,
+  CurrentAgency,
+  generateContent,
+  getContentItem,
+  getCurrentAgency,
+  updateContentItem,
+} from "@/lib/api";
 
 type ContentType = "blog" | "linkedin" | "newsletter";
 type Tone = "professionnel" | "expert" | "storytelling";
@@ -63,13 +72,17 @@ function getErrorMessage(error: unknown) {
 }
 
 export default function RedactionPage() {
+  const router = useRouter();
   const [contentType, setContentType] = useState<ContentType>("blog");
   const [tone, setTone] = useState<Tone>("professionnel");
   const [length, setLength] = useState<ContentLength>("moyen");
   const [inputMessage, setInputMessage] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingContent, setIsLoadingContent] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentAgency, setCurrentAgency] = useState<CurrentAgency | null>(null);
+  const [activeContent, setActiveContent] = useState<ContentItem | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 1,
@@ -86,6 +99,62 @@ export default function RedactionPage() {
   const selectedLength = lengthOptions.find((option) => option.id === length);
   const needsAuthentication =
     error === "Vous devez être connecté pour utiliser la rédaction IA.";
+
+  useEffect(() => {
+    let ignoreResult = false;
+
+    async function loadContext() {
+      setIsLoadingContent(true);
+
+      try {
+        const agency = await getCurrentAgency();
+        if (ignoreResult) return;
+        setCurrentAgency(agency);
+
+        const contentId = new URLSearchParams(window.location.search).get("contentId");
+        if (!contentId) return;
+
+        const content = await getContentItem(agency.agency.id, contentId);
+        if (ignoreResult) return;
+
+        setActiveContent(content);
+
+        const matchingType = contentTypeOptions.find(
+          (option) => option.label.toLowerCase() === content.contentType?.toLowerCase(),
+        );
+        if (matchingType) setContentType(matchingType.id);
+
+        setMessages([
+          {
+            id: Date.now(),
+            sender: "ai",
+            text: content.body
+              ? `Brouillon chargé : « ${content.title} »\n\n${content.body}`
+              : `Le brief « ${content.title} » est prêt. ${
+                  content.notes
+                    ? `Contexte disponible : ${content.notes}`
+                    : "Indiquez-moi l’angle ou les consignes à appliquer."
+                }`,
+            time: "",
+          },
+        ]);
+        setInputMessage(
+          content.body
+            ? "Améliore ce brouillon en conservant son intention et sa structure."
+            : `Rédige une première version complète pour « ${content.title} ».`,
+        );
+      } catch (caughtError) {
+        if (!ignoreResult) setError(getErrorMessage(caughtError));
+      } finally {
+        if (!ignoreResult) setIsLoadingContent(false);
+      }
+    }
+
+    void loadContext();
+    return () => {
+      ignoreResult = true;
+    };
+  }, []);
 
   async function handleSendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -109,20 +178,37 @@ export default function RedactionPage() {
     setIsGenerating(true);
 
     try {
-      const currentAgency = await getCurrentAgency();
+      const agency = currentAgency ?? (await getCurrentAgency());
 
-      const result = await generateContent(currentAgency.agency.id, {
-        title: prompt.slice(0, 200),
-        brief: prompt,
+      const result = await generateContent(agency.agency.id, {
+        title: activeContent?.title ?? prompt.slice(0, 200),
+        brief: [activeContent?.notes, prompt].filter(Boolean).join("\n\n"),
         contentType: selectedContentType?.label ?? contentType,
         channel: selectedContentType?.label ?? contentType,
         tone: selectedTone?.label ?? tone,
         language: "francais",
-        saveDraft: true,
+        saveDraft: !activeContent,
         provider: "gemini",
         temperature: tone === "storytelling" ? 0.8 : 0.5,
         maxTokens: selectedLength?.maxTokens ?? 1200,
       });
+
+      let savedContent = result.item ?? activeContent;
+      if (activeContent) {
+        savedContent = await updateContentItem(agency.agency.id, activeContent.id, {
+          body: result.content,
+          status: "DRAFT",
+          contentType: selectedContentType?.label ?? contentType,
+          channel: selectedContentType?.label ?? contentType,
+        });
+      }
+
+      if (savedContent) {
+        setActiveContent(savedContent);
+        if (!activeContent) {
+          router.replace(`/redaction?contentId=${savedContent.id}`);
+        }
+      }
 
       setMessages((currentMessages) => [
         ...currentMessages,
@@ -152,9 +238,9 @@ export default function RedactionPage() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-white text-gray-800 relative overflow-hidden">
+    <div className="relative flex h-full min-h-[calc(100dvh-4rem)] w-full overflow-hidden bg-white text-gray-800 md:min-h-0">
       <div className="flex-1 flex flex-col bg-white h-full transition-all duration-300">
-        <div className="px-8 py-4 border-b border-gray-200 flex items-center justify-between bg-white">
+        <div className="flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-4 py-4 sm:px-8">
           <div className="flex items-center gap-2">
             <Image
               src="/icons/contenu-ia.png"
@@ -164,22 +250,36 @@ export default function RedactionPage() {
               className="opacity-90"
             />
             <div>
-              <h1 className="font-bold text-gray-900 text-lg">Rédaction IA</h1>
-              <p className="text-xs text-gray-500">Assistant Gemini.</p>
+              <h1 className="font-bold text-gray-900 text-lg">
+                {activeContent?.title || "Rédaction IA"}
+              </h1>
+              <p className="text-xs text-gray-500">
+                {activeContent ? "Brouillon enregistré automatiquement" : "Assistant Gemini"}
+              </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-            className={`px-3 py-2 rounded-lg border transition-all text-sm font-semibold ${
-              isSettingsOpen
-                ? "bg-blue-50 border-blue-200 text-blue-600"
-                : "hover:bg-gray-100 border-gray-200 text-gray-700"
-            }`}
-          >
-            Réglages
-          </button>
+          <div className="flex items-center gap-2">
+            {activeContent ? (
+              <Link
+                href="/contenus"
+                className="hidden rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 sm:inline-flex"
+              >
+                Voir mes contenus
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              className={`px-3 py-2 rounded-lg border transition-all text-sm font-semibold ${
+                isSettingsOpen
+                  ? "bg-blue-50 border-blue-200 text-blue-600"
+                  : "hover:bg-gray-100 border-gray-200 text-gray-700"
+              }`}
+            >
+              Réglages
+            </button>
+          </div>
         </div>
 
         {error ? (
@@ -204,7 +304,10 @@ export default function RedactionPage() {
           </div>
         ) : null}
 
-        <div className="flex-1 overflow-y-auto px-8 lg:px-16 py-8 space-y-6">
+        <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 lg:px-16 lg:py-8 space-y-6">
+          {isLoadingContent ? (
+            <div className="text-sm text-gray-500">Chargement du brief…</div>
+          ) : null}
           {messages.map((message) => (
             <div
               key={message.id}
@@ -241,7 +344,7 @@ export default function RedactionPage() {
           ) : null}
         </div>
 
-        <div className="p-6 bg-white border-t border-gray-100">
+        <div className="border-t border-gray-100 bg-white p-4 sm:p-6">
           <form
             onSubmit={handleSendMessage}
             className="max-w-4xl mx-auto flex gap-3 items-center"
@@ -250,7 +353,11 @@ export default function RedactionPage() {
               type="text"
               value={inputMessage}
               onChange={(event) => setInputMessage(event.target.value)}
-              placeholder="Décrivez le contenu que vous souhaitez créer..."
+              placeholder={
+                activeContent
+                  ? "Décrivez la modification ou la version souhaitée…"
+                  : "Décrivez le contenu que vous souhaitez créer…"
+              }
               className="flex-1 border border-gray-200 rounded-lg px-5 py-3 text-sm focus:outline-none focus:border-gray-400 placeholder-gray-400 bg-white"
             />
             <button
@@ -264,19 +371,39 @@ export default function RedactionPage() {
         </div>
       </div>
 
+      {isSettingsOpen ? (
+        <button
+          type="button"
+          aria-label="Fermer les réglages"
+          onClick={() => setIsSettingsOpen(false)}
+          className="absolute inset-0 z-20 bg-black/10"
+        />
+      ) : null}
+
       <div
-        className={`border-l border-gray-200 flex flex-col bg-white h-full flex-shrink-0 transition-all duration-300 ${
+        aria-hidden={!isSettingsOpen}
+        className={`absolute inset-y-0 right-0 z-30 flex h-full flex-col border-l border-gray-200 bg-white shadow-xl transition-all duration-300 ${
           isSettingsOpen
             ? "w-72 opacity-100"
-            : "w-0 opacity-0 pointer-events-none border-l-0"
+            : "invisible w-0 opacity-0 pointer-events-none border-l-0"
         }`}
       >
         <div className="w-72 flex flex-col h-full">
-          <div className="px-6 py-5 border-b border-gray-200">
-            <h2 className="text-lg font-bold text-gray-900">Réglages</h2>
-            <p className="text-xs text-gray-500 mt-1">
-              Contexte envoyé à Gemini.
-            </p>
+          <div className="flex items-start justify-between gap-4 border-b border-gray-200 px-6 py-5">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Réglages</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Contexte envoyé à Gemini.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen(false)}
+              aria-label="Fermer les réglages"
+              className="rounded-lg px-2 py-1 text-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            >
+              ×
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-8 text-sm">

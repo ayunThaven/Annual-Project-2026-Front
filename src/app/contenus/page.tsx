@@ -81,14 +81,14 @@ export default function ContenusPage() {
 
   return (
     <div className="w-full">
-      <div className="bg-white border-b border-gray-200 px-8 py-4 sticky top-0 z-10">
+      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-4 sm:px-8">
         <h1 className="text-2xl font-bold text-gray-900">Mes contenus</h1>
         <p className="text-gray-500 text-xs mt-0.5">
           Historique editorial de l&apos;agence et sujets acceptes depuis les idees
         </p>
       </div>
 
-      <div className="max-w-7xl mx-auto px-8 py-8 space-y-4">
+      <div className="mx-auto max-w-7xl space-y-4 px-4 py-6 sm:px-8 sm:py-8">
         {isLoading ? (
           <div className="bg-white border border-gray-200 rounded-lg p-6 text-sm text-gray-500">
             Chargement des contenus...
@@ -124,13 +124,19 @@ export default function ContenusPage() {
             <p className="mt-1 text-sm text-gray-500">
               Acceptez une idee pour l&apos;ajouter au calendrier editorial.
             </p>
+            <Link
+              href="/idees?generate=1"
+              className="mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700"
+            >
+              Générer des idées
+            </Link>
           </div>
         ) : null}
 
         {contents.map((doc) => (
           <div
             key={doc.id}
-            className="bg-white border border-gray-200 rounded-lg p-5 flex items-center justify-between gap-4 hover:shadow-md transition-shadow"
+            className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="flex items-center gap-4 min-w-0">
               <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 shrink-0">
@@ -157,7 +163,7 @@ export default function ContenusPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:shrink-0">
               <span className="text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-100 px-3 py-1 rounded-full">
                 {doc.syncStatus ? syncLabels[doc.syncStatus] : 'Local'}
               </span>
@@ -168,10 +174,17 @@ export default function ContenusPage() {
                   setSelectedDoc(doc);
                   setIsPreviewOpen(true);
                 }}
-                className="p-2 hover:bg-gray-100 rounded-lg border border-gray-200"
+                aria-label={`Prévisualiser ${doc.title}`}
+                className="rounded-lg border border-gray-200 p-2 hover:bg-gray-100"
               >
                 <Image src="/icons/voir.png" alt="Voir" width={16} height={16} />
               </button>
+              <Link
+                href={`/redaction?contentId=${doc.id}`}
+                className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700"
+              >
+                {doc.status === 'PUBLISHED' ? 'Réutiliser' : 'Continuer'}
+              </Link>
             </div>
           </div>
         ))}
