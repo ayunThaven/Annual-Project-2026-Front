@@ -343,6 +343,11 @@ export default function ParametresPage() {
       });
 
       applyAiSettings(settings);
+      await loadAiModels(
+        currentAgency.agency.id,
+        settings.provider,
+        settings.model,
+      );
       setAiSettingsSuccess('Configuration IA mise a jour.');
     } catch (caughtError) {
       setAiSettingsError(getErrorMessage(caughtError));
