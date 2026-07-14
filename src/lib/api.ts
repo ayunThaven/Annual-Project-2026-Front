@@ -684,3 +684,6 @@ export function removeCurationItem(agencyId: string, id: string) {
     method: 'DELETE',
   });
 }
+export function getAgencyContent(agencyId: string) {
+  return apiRequest<ContentItem[]>(`/agencies/${agencyId}/content`);
+}
