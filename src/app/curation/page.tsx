@@ -93,6 +93,7 @@ export default function CurationPage() {
   const [tone, setTone] = useState<Tone>("Professionnel");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
+  const [generatedDraftId, setGeneratedDraftId] = useState<string | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
 
   const [busyFeedId, setBusyFeedId] = useState<string | null>(null);
@@ -306,6 +307,7 @@ export default function CurationPage() {
   function openInspireModal(article: CurationItem) {
     setSelectedArticle(article);
     setGeneratedContent(null);
+    setGeneratedDraftId(null);
     setGenerateError(null);
     setIsInspireModalOpen(true);
   }
@@ -327,6 +329,7 @@ export default function CurationPage() {
         saveDraft: true,
       });
       setGeneratedContent(result.content);
+      setGeneratedDraftId(result.item?.id ?? null);
     } catch (caughtError) {
       setGenerateError(getErrorMessage(caughtError));
     } finally {
@@ -339,7 +342,7 @@ export default function CurationPage() {
   return (
     <div className="w-full">
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-8 py-4">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-8">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
@@ -352,16 +355,16 @@ export default function CurationPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-gray-500 font-medium tracking-wide">
+            <div className="hidden items-center gap-2 text-xs font-medium tracking-wide text-gray-500 sm:flex">
               <span className="text-gray-900 font-bold">Sources :</span>
               <span className="text-gray-950 font-bold">{activeFeedCount}</span> flux actifs
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             <button
               onClick={() => setIsRssModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors flex items-center gap-2 text-sm"
+              className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 sm:px-6 sm:text-sm"
             >
               <Image
                 src="/icons/creer-white.png"
@@ -374,7 +377,7 @@ export default function CurationPage() {
 
             <button
               onClick={() => setIsUrlModalOpen(true)}
-              className="bg-white hover:bg-gray-100 text-gray-700 font-semibold py-2 px-6 rounded-lg border border-gray-200 transition-colors flex items-center gap-2 text-sm"
+              className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 sm:px-6 sm:text-sm"
             >
               <Image src="/icons/import.png" alt="" width={16} height={16} />
               <span>Importer une URL</span>
@@ -383,14 +386,14 @@ export default function CurationPage() {
             <button
               onClick={() => void handleIngestAll()}
               disabled={isIngestingAll || activeFeedCount === 0}
-              className="text-gray-700 font-semibold py-2 px-6 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors text-sm disabled:opacity-50"
+              className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 disabled:opacity-50 sm:px-6 sm:text-sm"
             >
               {isIngestingAll ? "Synchronisation..." : "Tout synchroniser"}
             </button>
           </div>
         </div>
 
-        <div className="border-t border-gray-200 px-8 flex gap-8">
+        <div className="flex gap-6 overflow-x-auto border-t border-gray-200 px-4 sm:gap-8 sm:px-8">
           <button
             onClick={() => setActiveTab("rss")}
             className={`py-4 font-semibold text-sm transition-colors border-b-2 ${
@@ -415,7 +418,7 @@ export default function CurationPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-8 py-8 space-y-4">
+      <div className="mx-auto max-w-7xl space-y-4 px-4 py-6 sm:px-8 sm:py-8">
         {isLoading && (
           <div className="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-500 shadow-sm">
             Chargement de la curation...
@@ -898,8 +901,17 @@ export default function CurationPage() {
                 onClick={() => setIsInspireModalOpen(false)}
                 className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
               >
-                {generatedContent ? "Fermer" : "Annuler"}
+                {generatedContent ? "Plus tard" : "Annuler"}
               </button>
+
+              {generatedContent && generatedDraftId ? (
+                <Link
+                  href={`/redaction?contentId=${generatedDraftId}`}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                >
+                  Continuer dans Rédaction
+                </Link>
+              ) : null}
 
               {!generatedContent && (
                 <button

@@ -12,7 +12,7 @@ function getRedirectPath() {
     return redirect;
   }
 
-  return '/parametres';
+  return '/parametres?onboarding=1';
 }
 
 function getErrorMessage(error: unknown) {

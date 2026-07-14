@@ -228,6 +228,9 @@ export default function ParametresPage() {
     }
 
     void loadAgency();
+    // Chargement initial uniquement ; les créations et sauvegardes rafraîchissent
+    // explicitement leurs réglages via leurs propres handlers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleAgencySubmit(event: FormEvent<HTMLFormElement>) {
@@ -358,14 +361,29 @@ export default function ParametresPage() {
 
   return (
     <div className="w-full">
-      <div className="bg-white border-b border-gray-200 px-8 py-4 sticky top-0 z-10">
-        <h1 className="text-2xl font-bold text-gray-900">Parametres Generaux</h1>
+      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-4 sm:px-8">
+        <h1 className="text-2xl font-bold text-gray-900">
+          {agency ? 'Paramètres généraux' : 'Bienvenue dans SEO Genius'}
+        </h1>
         <p className="text-gray-500 text-xs mt-0.5">
-          Configurez l&apos;environnement global de votre application SaaS
+          {agency
+            ? 'Configurez votre environnement de travail.'
+            : 'Commençons par créer votre espace de travail.'}
         </p>
       </div>
 
-      <div className="max-w-3xl mx-auto px-8 py-8 space-y-8">
+      <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 sm:px-8 sm:py-8">
+        {!isLoadingAgency && !agency && !agencyError ? (
+          <div className="rounded-2xl bg-gray-950 p-6 text-white sm:p-8">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-300">
+              Étape 1 sur 3
+            </p>
+            <h2 className="mt-2 text-2xl font-bold">Donnez un nom à votre espace</h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-gray-300">
+              Vous pourrez ensuite configurer l’IA, connecter Notion et inviter votre équipe. Ces réglages restent facultatifs pour démarrer.
+            </p>
+          </div>
+        ) : null}
         <form
           onSubmit={handleAgencySubmit}
           className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4"
@@ -403,7 +421,12 @@ export default function ParametresPage() {
 
           {agencySuccess ? (
             <div className="bg-green-50 border border-green-100 rounded-lg p-3 text-sm font-medium text-green-700">
-              {agencySuccess}
+              <p>{agencySuccess}</p>
+              {agency ? (
+                <Link href="/dashboard" className="mt-2 inline-block text-xs font-bold underline">
+                  Continuer vers mon tableau de bord
+                </Link>
+              ) : null}
             </div>
           ) : null}
 
@@ -429,33 +452,37 @@ export default function ParametresPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Base Notion
-              </label>
-              <input
-                type="text"
-                value={notionDatabaseId}
-                onChange={(event) => setNotionDatabaseId(event.target.value)}
-                disabled={isLoadingAgency || !canEditAgency}
-                placeholder="ID de la database"
-                className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400 placeholder-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
-              />
-            </div>
+            {agency ? (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                    Base Notion
+                  </label>
+                  <input
+                    type="text"
+                    value={notionDatabaseId}
+                    onChange={(event) => setNotionDatabaseId(event.target.value)}
+                    disabled={isLoadingAgency || !canEditAgency}
+                    placeholder="ID de la database"
+                    className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400 placeholder-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  />
+                </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Workspace Notion
-              </label>
-              <input
-                type="text"
-                value={notionWorkspaceName}
-                onChange={(event) => setNotionWorkspaceName(event.target.value)}
-                disabled={isLoadingAgency || !canEditAgency}
-                placeholder="Nom du workspace"
-                className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400 placeholder-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
-              />
-            </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                    Workspace Notion
+                  </label>
+                  <input
+                    type="text"
+                    value={notionWorkspaceName}
+                    onChange={(event) => setNotionWorkspaceName(event.target.value)}
+                    disabled={isLoadingAgency || !canEditAgency}
+                    placeholder="Nom du workspace"
+                    className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400 placeholder-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+              </>
+            ) : null}
           </div>
 
           <div className="flex justify-end pt-2">
@@ -467,8 +494,8 @@ export default function ParametresPage() {
               {isSavingAgency
                 ? 'Enregistrement...'
                 : agency
-                  ? 'Enregistrer l agence'
-                  : 'Creer l agence'}
+                  ? 'Enregistrer l’agence'
+                  : 'Créer mon espace'}
             </button>
           </div>
         </form>

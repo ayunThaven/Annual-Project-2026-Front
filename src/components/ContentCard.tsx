@@ -50,13 +50,20 @@ export default function ContentCard({
         </div>
 
         <div className="flex-1">
-          <p
-            className={`text-sm font-semibold mb-2 ${
-              type === "blog" ? "text-purple-600" : "text-blue-600"
-            }`}
-          >
-            {typeLabels[type]}
-          </p>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <p
+              className={`text-sm font-semibold ${
+                type === "blog" ? "text-purple-600" : "text-blue-600"
+              }`}
+            >
+              {typeLabels[type]}
+            </p>
+            {generatedByAI ? (
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase text-gray-500">
+                IA
+              </span>
+            ) : null}
+          </div>
 
           <h3 className="text-xl font-bold text-gray-900 leading-tight">
             {title}
