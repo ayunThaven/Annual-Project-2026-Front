@@ -109,6 +109,7 @@ export type ContentItem = {
   url?: string | null;
   tags?: string[] | null;
   notes?: string | null;
+  body?: string | null;
   syncStatus?: SyncStatus;
   createdAt: string;
   updatedAt: string;
@@ -437,28 +438,6 @@ export function updateMemberRole(membershipId: string, role: AgencyRole) {
     body: { role },
   });
 }
-
-export type ContentStatus =
-  | 'IDEA'
-  | 'DRAFT'
-  | 'IN_REVIEW'
-  | 'SCHEDULED'
-  | 'PUBLISHED';
-
-export type ContentItem = {
-  id: string;
-  title: string;
-  status: ContentStatus;
-  publicationDate?: string | null;
-  channel?: string | null;
-  contentType?: string | null;
-  url?: string | null;
-  tags?: string[] | null;
-  notes?: string | null;
-  body?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-};
 
 export type GenerateContentInput = {
   title: string;
