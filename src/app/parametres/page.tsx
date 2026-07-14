@@ -4,14 +4,18 @@ import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
 import {
   Agency,
+  AgencyAiProvider,
+  AgencyAiSettings,
   ApiError,
   CurrentAgency,
   createAgency,
+  getAgencyAiSettings,
   getCurrentAgency,
   getIdeaGenerationSettings,
   IdeaGenerationCadence,
   IdeaGenerationSettings,
   updateAgency,
+  updateAgencyAiSettings,
   updateIdeaGenerationSettings,
 } from '@/lib/api';
 
@@ -56,7 +60,11 @@ export default function ParametresPage() {
   const [agencyName, setAgencyName] = useState('SEO Genius Agency');
   const [notionDatabaseId, setNotionDatabaseId] = useState('');
   const [notionWorkspaceName, setNotionWorkspaceName] = useState('');
-  const [modelIA, setModelIA] = useState('gemini-2.0-flash');
+  const [aiProvider, setAiProvider] = useState<AgencyAiProvider>('gemini');
+  const [aiModel, setAiModel] = useState('gemini-3.5-flash');
+  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [geminiApiKeyConfigured, setGeminiApiKeyConfigured] = useState(false);
+  const [clearGeminiApiKey, setClearGeminiApiKey] = useState(false);
   const [ideaCronEnabled, setIdeaCronEnabled] = useState(false);
   const [ideaCronCadence, setIdeaCronCadence] =
     useState<IdeaGenerationCadence>('DAILY');
@@ -70,12 +78,16 @@ export default function ParametresPage() {
   const [ideaCronLastRunAt, setIdeaCronLastRunAt] = useState<string | null>(null);
   const [isLoadingAgency, setIsLoadingAgency] = useState(true);
   const [isLoadingIdeaSettings, setIsLoadingIdeaSettings] = useState(false);
+  const [isLoadingAiSettings, setIsLoadingAiSettings] = useState(false);
   const [isSavingAgency, setIsSavingAgency] = useState(false);
   const [isSavingIdeaSettings, setIsSavingIdeaSettings] = useState(false);
+  const [isSavingAiSettings, setIsSavingAiSettings] = useState(false);
   const [agencyError, setAgencyError] = useState<string | null>(null);
   const [agencySuccess, setAgencySuccess] = useState<string | null>(null);
   const [ideaSettingsError, setIdeaSettingsError] = useState<string | null>(null);
   const [ideaSettingsSuccess, setIdeaSettingsSuccess] = useState<string | null>(null);
+  const [aiSettingsError, setAiSettingsError] = useState<string | null>(null);
+  const [aiSettingsSuccess, setAiSettingsSuccess] = useState<string | null>(null);
 
   const canEditAgency = !agency || currentAgency?.role === 'OWNER';
   const needsAuthentication =
@@ -94,6 +106,14 @@ export default function ParametresPage() {
     setIdeaCronLastRunAt(settings.lastRunAt ?? null);
   }
 
+  function applyAiSettings(settings: AgencyAiSettings) {
+    setAiProvider(settings.provider);
+    setAiModel(settings.model);
+    setGeminiApiKey('');
+    setGeminiApiKeyConfigured(settings.geminiApiKeyConfigured);
+    setClearGeminiApiKey(false);
+  }
+
   async function loadIdeaSettings(agencyId: string) {
     setIsLoadingIdeaSettings(true);
     setIdeaSettingsError(null);
@@ -105,6 +125,20 @@ export default function ParametresPage() {
       setIdeaSettingsError(getErrorMessage(caughtError));
     } finally {
       setIsLoadingIdeaSettings(false);
+    }
+  }
+
+  async function loadAiSettings(agencyId: string) {
+    setIsLoadingAiSettings(true);
+    setAiSettingsError(null);
+
+    try {
+      const settings = await getAgencyAiSettings(agencyId);
+      applyAiSettings(settings);
+    } catch (caughtError) {
+      setAiSettingsError(getErrorMessage(caughtError));
+    } finally {
+      setIsLoadingAiSettings(false);
     }
   }
 
@@ -120,7 +154,10 @@ export default function ParametresPage() {
         setAgencyName(current.agency.name);
         setNotionDatabaseId(current.agency.notionDatabaseId ?? '');
         setNotionWorkspaceName(current.agency.notionWorkspaceName ?? '');
-        await loadIdeaSettings(current.agency.id);
+        await Promise.all([
+          loadIdeaSettings(current.agency.id),
+          loadAiSettings(current.agency.id),
+        ]);
       } catch (caughtError) {
         if (caughtError instanceof ApiError && caughtError.status === 404) {
           setCurrentAgency(null);
@@ -180,7 +217,10 @@ export default function ParametresPage() {
         setNotionDatabaseId(createdAgency.agency.notionDatabaseId ?? '');
         setNotionWorkspaceName(createdAgency.agency.notionWorkspaceName ?? '');
         setAgencySuccess('Agence creee et rattachee a votre compte.');
-        await loadIdeaSettings(createdAgency.agency.id);
+        await Promise.all([
+          loadIdeaSettings(createdAgency.agency.id),
+          loadAiSettings(createdAgency.agency.id),
+        ]);
       }
     } catch (caughtError) {
       setAgencyError(getErrorMessage(caughtError));
@@ -224,6 +264,34 @@ export default function ParametresPage() {
       setIdeaSettingsError(getErrorMessage(caughtError));
     } finally {
       setIsSavingIdeaSettings(false);
+    }
+  }
+
+  async function handleAiSettingsSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!currentAgency || !canEditAgency || !aiModel.trim()) {
+      return;
+    }
+
+    setIsSavingAiSettings(true);
+    setAiSettingsError(null);
+    setAiSettingsSuccess(null);
+
+    try {
+      const settings = await updateAgencyAiSettings(currentAgency.agency.id, {
+        provider: aiProvider,
+        model: aiModel.trim(),
+        ...(geminiApiKey.trim() ? { geminiApiKey: geminiApiKey.trim() } : {}),
+        ...(clearGeminiApiKey ? { clearGeminiApiKey: true } : {}),
+      });
+
+      applyAiSettings(settings);
+      setAiSettingsSuccess('Configuration IA mise a jour.');
+    } catch (caughtError) {
+      setAiSettingsError(getErrorMessage(caughtError));
+    } finally {
+      setIsSavingAiSettings(false);
     }
   }
 
@@ -558,39 +626,136 @@ export default function ParametresPage() {
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4">
-          <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2">
-            Moteur d&apos;Intelligence Artificielle
-          </h2>
+        {agency ? (
+          <form
+            onSubmit={handleAiSettingsSubmit}
+            className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4"
+          >
+            <div className="border-b border-gray-100 pb-3">
+              <h2 className="text-base font-bold text-gray-900">
+                Moteur d&apos;Intelligence Artificielle
+              </h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Ce reglage est partage par toute l&apos;agence. La cle n&apos;est jamais
+                affichee apres son enregistrement.
+              </p>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Modele LLM par defaut
+            {aiSettingsError ? (
+              <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-sm font-medium text-red-600">
+                {aiSettingsError}
+              </div>
+            ) : null}
+
+            {aiSettingsSuccess ? (
+              <div className="bg-green-50 border border-green-100 rounded-lg p-3 text-sm font-medium text-green-700">
+                {aiSettingsSuccess}
+              </div>
+            ) : null}
+
+            {!canEditAgency ? (
+              <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-sm font-medium text-amber-700">
+                Seul un administrateur peut modifier la configuration IA de l&apos;agence.
+              </div>
+            ) : null}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-500">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Fournisseur
+                </label>
+                <select
+                  value={aiProvider}
+                  onChange={(event) =>
+                    setAiProvider(event.target.value as AgencyAiProvider)
+                  }
+                  disabled={isLoadingAiSettings || !canEditAgency}
+                  className="w-full text-sm border border-gray-200 text-gray-500 rounded-lg p-2.5 bg-white focus:outline-none focus:border-gray-400 disabled:bg-gray-50"
+                >
+                  <option value="gemini">Google Gemini</option>
+                  <option value="demo">Demo locale</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                  Modele par defaut
+                </label>
+                <input
+                  type="text"
+                  value={aiModel}
+                  onChange={(event) => setAiModel(event.target.value)}
+                  disabled={isLoadingAiSettings || !canEditAgency}
+                  placeholder={aiProvider === 'demo' ? 'demo-local' : 'gemini-3.5-flash'}
+                  className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400 placeholder-gray-400 disabled:bg-gray-50"
+                  required
+                  maxLength={160}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <div className="flex items-center justify-between gap-3 mb-1">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase">
+                    Cle API Gemini
+                  </label>
+                  <span
+                    className={`text-xs font-semibold ${
+                      geminiApiKeyConfigured ? 'text-green-700' : 'text-gray-400'
+                    }`}
+                  >
+                    {geminiApiKeyConfigured ? 'Cle configuree' : 'Aucune cle enregistree'}
+                  </span>
+                </div>
+                <input
+                  type="password"
+                  value={geminiApiKey}
+                  onChange={(event) => {
+                    setGeminiApiKey(event.target.value);
+                    setClearGeminiApiKey(false);
+                  }}
+                  disabled={
+                    isLoadingAiSettings || !canEditAgency || aiProvider !== 'gemini'
+                  }
+                  placeholder={
+                    geminiApiKeyConfigured
+                      ? 'Saisissez une nouvelle cle pour la remplacer'
+                      : 'Collez votre cle Gemini'
+                  }
+                  autoComplete="new-password"
+                  className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400 placeholder-gray-400 disabled:bg-gray-50"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  La cle est chiffree et n&apos;est jamais renvoyee par le serveur.
+                </p>
+              </div>
+            </div>
+
+            {geminiApiKeyConfigured && aiProvider === 'gemini' ? (
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={clearGeminiApiKey}
+                  onChange={(event) => {
+                    setClearGeminiApiKey(event.target.checked);
+                    if (event.target.checked) setGeminiApiKey('');
+                  }}
+                  disabled={isLoadingAiSettings || !canEditAgency}
+                />
+                Supprimer la cle API enregistree pour cette agence
               </label>
-              <select
-                value={modelIA}
-                onChange={(event) => setModelIA(event.target.value)}
-                className="w-full text-sm border border-gray-200 text-gray-500 rounded-lg p-2.5 bg-white focus:outline-none focus:border-gray-400"
+            ) : null}
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={isLoadingAiSettings || isSavingAiSettings || !canEditAgency}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-2 px-4 rounded-lg text-xs transition-colors"
               >
-                <option value="gemini-2.0-flash">Google Gemini 2.0 Flash</option>
-                <option value="gemini-1.5-flash">Google Gemini 1.5 Flash</option>
-                <option value="demo-local">Demo locale</option>
-              </select>
+                {isSavingAiSettings ? 'Enregistrement...' : 'Enregistrer la configuration IA'}
+              </button>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Cle d&apos;API cloturee
-              </label>
-              <input
-                type="password"
-                value="****************************"
-                disabled
-                className="w-full text-sm border border-gray-200 rounded-lg p-2.5 bg-gray-50 text-gray-400 cursor-not-allowed"
-              />
-            </div>
-          </div>
-        </div>
+          </form>
+        ) : null}
       </div>
     </div>
   );

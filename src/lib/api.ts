@@ -83,6 +83,22 @@ export type AiProvidersResponse = {
   providers: AiProviderStatus[];
 };
 
+export type AgencyAiProvider = 'gemini' | 'demo';
+
+export type AgencyAiSettings = {
+  provider: AgencyAiProvider;
+  model: string;
+  geminiApiKeyConfigured: boolean;
+  updatedAt?: string | null;
+};
+
+export type UpdateAgencyAiSettingsInput = {
+  provider?: AgencyAiProvider;
+  model?: string;
+  geminiApiKey?: string;
+  clearGeminiApiKey?: boolean;
+};
+
 export type AiCompletionResult = {
   provider: string;
   model: string;
@@ -291,6 +307,20 @@ export function getProfile() {
 
 export function getAiProviders() {
   return apiRequest<AiProvidersResponse>('/ai/providers');
+}
+
+export function getAgencyAiSettings(agencyId: string) {
+  return apiRequest<AgencyAiSettings>(`/agencies/${agencyId}/ai/settings`);
+}
+
+export function updateAgencyAiSettings(
+  agencyId: string,
+  input: UpdateAgencyAiSettingsInput,
+) {
+  return apiRequest<AgencyAiSettings>(`/agencies/${agencyId}/ai/settings`, {
+    method: 'PATCH',
+    body: input,
+  });
 }
 
 export function generateText(input: GenerateTextInput) {
