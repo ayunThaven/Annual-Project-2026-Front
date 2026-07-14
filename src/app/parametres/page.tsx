@@ -6,6 +6,7 @@ import {
   Agency,
   AgencyAiProvider,
   AgencyAiSettings,
+  AiModelOption,
   ApiError,
   CurrentAgency,
   createAgency,
@@ -14,25 +15,14 @@ import {
   getIdeaGenerationSettings,
   IdeaGenerationCadence,
   IdeaGenerationSettings,
+  listAgencyAiModels,
   updateAgency,
   updateAgencyAiSettings,
   updateIdeaGenerationSettings,
 } from '@/lib/api';
 
 type IdeaCount = 3 | 5 | 10;
-type AiModelChoice = string | 'custom';
-
-const aiModelsByProvider: Record<
-  AgencyAiProvider,
-  Array<{ value: string; label: string }>
-> = {
-  gemini: [
-    { value: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
-    { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
-  ],
-  demo: [{ value: 'demo-local', label: 'Demo locale' }],
-};
+type AiModelChoice = string;
 
 const weekdayOptions = [
   { value: 1, label: 'Lundi' },
@@ -77,6 +67,7 @@ export default function ParametresPage() {
   const [aiModel, setAiModel] = useState('gemini-3.5-flash');
   const [aiModelChoice, setAiModelChoice] =
     useState<AiModelChoice>('gemini-3.5-flash');
+  const [availableAiModels, setAvailableAiModels] = useState<AiModelOption[]>([]);
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [geminiApiKeyConfigured, setGeminiApiKeyConfigured] = useState(false);
   const [clearGeminiApiKey, setClearGeminiApiKey] = useState(false);
@@ -94,6 +85,7 @@ export default function ParametresPage() {
   const [isLoadingAgency, setIsLoadingAgency] = useState(true);
   const [isLoadingIdeaSettings, setIsLoadingIdeaSettings] = useState(false);
   const [isLoadingAiSettings, setIsLoadingAiSettings] = useState(false);
+  const [isLoadingAiModels, setIsLoadingAiModels] = useState(false);
   const [isSavingAgency, setIsSavingAgency] = useState(false);
   const [isSavingIdeaSettings, setIsSavingIdeaSettings] = useState(false);
   const [isSavingAiSettings, setIsSavingAiSettings] = useState(false);
@@ -103,6 +95,7 @@ export default function ParametresPage() {
   const [ideaSettingsSuccess, setIdeaSettingsSuccess] = useState<string | null>(null);
   const [aiSettingsError, setAiSettingsError] = useState<string | null>(null);
   const [aiSettingsSuccess, setAiSettingsSuccess] = useState<string | null>(null);
+  const [aiModelsError, setAiModelsError] = useState<string | null>(null);
 
   const canEditAgency = !agency || currentAgency?.role === 'OWNER';
   const needsAuthentication =
@@ -122,24 +115,47 @@ export default function ParametresPage() {
   }
 
   function applyAiSettings(settings: AgencyAiSettings) {
-    const isPreset = aiModelsByProvider[settings.provider].some(
-      (option) => option.value === settings.model,
-    );
-
     setAiProvider(settings.provider);
     setAiModel(settings.model);
-    setAiModelChoice(isPreset ? settings.model : 'custom');
+    setAiModelChoice(settings.model);
     setGeminiApiKey('');
     setGeminiApiKeyConfigured(settings.geminiApiKeyConfigured);
     setClearGeminiApiKey(false);
   }
 
-  function handleAiProviderChange(provider: AgencyAiProvider) {
-    const defaultModel = aiModelsByProvider[provider][0].value;
+  async function loadAiModels(
+    agencyId: string,
+    provider: AgencyAiProvider,
+    selectedModel?: string,
+  ) {
+    setIsLoadingAiModels(true);
+    setAiModelsError(null);
 
+    try {
+      const models = await listAgencyAiModels(agencyId, provider);
+      const model = selectedModel ?? models[0]?.id ?? '';
+      const isAvailable = models.some((option) => option.id === model);
+
+      setAvailableAiModels(models);
+      setAiModel(model);
+      setAiModelChoice(isAvailable ? model : 'custom');
+    } catch (caughtError) {
+      setAvailableAiModels([]);
+      setAiModelChoice('custom');
+      setAiModelsError(getErrorMessage(caughtError));
+    } finally {
+      setIsLoadingAiModels(false);
+    }
+  }
+
+  async function handleAiProviderChange(provider: AgencyAiProvider) {
     setAiProvider(provider);
-    setAiModel(defaultModel);
-    setAiModelChoice(defaultModel);
+    setAiModel('');
+    setAiModelChoice('custom');
+
+    if (currentAgency) {
+      await loadAiModels(currentAgency.agency.id, provider);
+    }
   }
 
   function handleAiModelChoiceChange(choice: AiModelChoice) {
@@ -174,6 +190,7 @@ export default function ParametresPage() {
     try {
       const settings = await getAgencyAiSettings(agencyId);
       applyAiSettings(settings);
+      await loadAiModels(agencyId, settings.provider, settings.model);
     } catch (caughtError) {
       setAiSettingsError(getErrorMessage(caughtError));
     } finally {
@@ -723,16 +740,30 @@ export default function ParametresPage() {
                 <select
                   value={aiModelChoice}
                   onChange={(event) => handleAiModelChoiceChange(event.target.value)}
-                  disabled={isLoadingAiSettings || !canEditAgency}
+                  disabled={
+                    isLoadingAiSettings || isLoadingAiModels || !canEditAgency
+                  }
                   className="w-full text-sm border border-gray-200 text-gray-500 rounded-lg p-2.5 bg-white focus:outline-none focus:border-gray-400 disabled:bg-gray-50"
                 >
-                  {aiModelsByProvider[aiProvider].map((option) => (
-                    <option key={option.value} value={option.value}>
+                  {availableAiModels.map((option) => (
+                    <option key={option.id} value={option.id}>
                       {option.label}
                     </option>
                   ))}
                   <option value="custom">Modele personnalise...</option>
                 </select>
+
+                {isLoadingAiModels ? (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Chargement des modeles disponibles...
+                  </p>
+                ) : null}
+
+                {aiModelsError ? (
+                  <p className="text-xs text-amber-700 mt-1">
+                    Liste indisponible : {aiModelsError}
+                  </p>
+                ) : null}
 
                 {aiModelChoice === 'custom' ? (
                   <input

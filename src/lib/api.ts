@@ -99,6 +99,11 @@ export type UpdateAgencyAiSettingsInput = {
   clearGeminiApiKey?: boolean;
 };
 
+export type AiModelOption = {
+  id: string;
+  label: string;
+};
+
 export type AiCompletionResult = {
   provider: string;
   model: string;
@@ -321,6 +326,17 @@ export function updateAgencyAiSettings(
     method: 'PATCH',
     body: input,
   });
+}
+
+export function listAgencyAiModels(
+  agencyId: string,
+  provider: AgencyAiProvider,
+) {
+  const query = new URLSearchParams({ provider });
+
+  return apiRequest<AiModelOption[]>(
+    `/agencies/${agencyId}/ai/models?${query.toString()}`,
+  );
 }
 
 export function generateText(input: GenerateTextInput) {
