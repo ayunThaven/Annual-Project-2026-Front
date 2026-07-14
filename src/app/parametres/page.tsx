@@ -20,6 +20,19 @@ import {
 } from '@/lib/api';
 
 type IdeaCount = 3 | 5 | 10;
+type AiModelChoice = string | 'custom';
+
+const aiModelsByProvider: Record<
+  AgencyAiProvider,
+  Array<{ value: string; label: string }>
+> = {
+  gemini: [
+    { value: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
+    { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+  ],
+  demo: [{ value: 'demo-local', label: 'Demo locale' }],
+};
 
 const weekdayOptions = [
   { value: 1, label: 'Lundi' },
@@ -62,6 +75,8 @@ export default function ParametresPage() {
   const [notionWorkspaceName, setNotionWorkspaceName] = useState('');
   const [aiProvider, setAiProvider] = useState<AgencyAiProvider>('gemini');
   const [aiModel, setAiModel] = useState('gemini-3.5-flash');
+  const [aiModelChoice, setAiModelChoice] =
+    useState<AiModelChoice>('gemini-3.5-flash');
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [geminiApiKeyConfigured, setGeminiApiKeyConfigured] = useState(false);
   const [clearGeminiApiKey, setClearGeminiApiKey] = useState(false);
@@ -107,11 +122,35 @@ export default function ParametresPage() {
   }
 
   function applyAiSettings(settings: AgencyAiSettings) {
+    const isPreset = aiModelsByProvider[settings.provider].some(
+      (option) => option.value === settings.model,
+    );
+
     setAiProvider(settings.provider);
     setAiModel(settings.model);
+    setAiModelChoice(isPreset ? settings.model : 'custom');
     setGeminiApiKey('');
     setGeminiApiKeyConfigured(settings.geminiApiKeyConfigured);
     setClearGeminiApiKey(false);
+  }
+
+  function handleAiProviderChange(provider: AgencyAiProvider) {
+    const defaultModel = aiModelsByProvider[provider][0].value;
+
+    setAiProvider(provider);
+    setAiModel(defaultModel);
+    setAiModelChoice(defaultModel);
+  }
+
+  function handleAiModelChoiceChange(choice: AiModelChoice) {
+    setAiModelChoice(choice);
+
+    if (choice === 'custom') {
+      setAiModel('');
+      return;
+    }
+
+    setAiModel(choice);
   }
 
   async function loadIdeaSettings(agencyId: string) {
@@ -667,7 +706,7 @@ export default function ParametresPage() {
                 <select
                   value={aiProvider}
                   onChange={(event) =>
-                    setAiProvider(event.target.value as AgencyAiProvider)
+                    handleAiProviderChange(event.target.value as AgencyAiProvider)
                   }
                   disabled={isLoadingAiSettings || !canEditAgency}
                   className="w-full text-sm border border-gray-200 text-gray-500 rounded-lg p-2.5 bg-white focus:outline-none focus:border-gray-400 disabled:bg-gray-50"
@@ -681,16 +720,32 @@ export default function ParametresPage() {
                 <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
                   Modele par defaut
                 </label>
-                <input
-                  type="text"
-                  value={aiModel}
-                  onChange={(event) => setAiModel(event.target.value)}
+                <select
+                  value={aiModelChoice}
+                  onChange={(event) => handleAiModelChoiceChange(event.target.value)}
                   disabled={isLoadingAiSettings || !canEditAgency}
-                  placeholder={aiProvider === 'demo' ? 'demo-local' : 'gemini-3.5-flash'}
-                  className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400 placeholder-gray-400 disabled:bg-gray-50"
-                  required
-                  maxLength={160}
-                />
+                  className="w-full text-sm border border-gray-200 text-gray-500 rounded-lg p-2.5 bg-white focus:outline-none focus:border-gray-400 disabled:bg-gray-50"
+                >
+                  {aiModelsByProvider[aiProvider].map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                  <option value="custom">Modele personnalise...</option>
+                </select>
+
+                {aiModelChoice === 'custom' ? (
+                  <input
+                    type="text"
+                    value={aiModel}
+                    onChange={(event) => setAiModel(event.target.value)}
+                    disabled={isLoadingAiSettings || !canEditAgency}
+                    placeholder="Ex: gemini-3.5-pro"
+                    className="w-full mt-2 text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400 placeholder-gray-400 disabled:bg-gray-50"
+                    required
+                    maxLength={160}
+                  />
+                ) : null}
               </div>
 
               <div className="md:col-span-2">
