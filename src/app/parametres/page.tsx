@@ -360,12 +360,13 @@ export default function ParametresPage() {
   }
 
   return (
-    <div className="w-full">
-      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-4 sm:px-8">
-        <h1 className="text-2xl font-bold text-gray-900">
+    <div className="min-h-full">
+      <div className="sticky top-0 z-10 border-b border-slate-200/80 bg-white/85 px-4 py-5 backdrop-blur sm:px-8 sm:py-6">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-indigo-600">Configuration</p>
+        <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
           {agency ? 'Paramètres généraux' : 'Bienvenue dans SEO Genius'}
         </h1>
-        <p className="text-gray-500 text-xs mt-0.5">
+        <p className="mt-2 text-sm text-slate-500">
           {agency
             ? 'Configurez votre environnement de travail.'
             : 'Commençons par créer votre espace de travail.'}
@@ -374,7 +375,7 @@ export default function ParametresPage() {
 
       <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 sm:px-8 sm:py-8">
         {!isLoadingAgency && !agency && !agencyError ? (
-          <div className="rounded-2xl bg-gray-950 p-6 text-white sm:p-8">
+          <div className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl shadow-slate-950/10 sm:p-8">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-300">
               Étape 1 sur 3
             </p>
@@ -386,7 +387,7 @@ export default function ParametresPage() {
         ) : null}
         <form
           onSubmit={handleAgencySubmit}
-          className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4"
+          className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
         >
           <div className="border-b border-gray-100 pb-3">
             <h2 className="text-base font-bold text-gray-900">Mon Organisation / Agence</h2>

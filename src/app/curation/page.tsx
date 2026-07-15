@@ -341,31 +341,31 @@ export default function CurationPage() {
   const activeFeedCount = feedSources.filter((feed) => feed.enabled).length;
 
   return (
-    <div className="w-full">
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-8">
-          <div className="flex items-center justify-between mb-4">
+    <div className="min-h-full">
+      <div className="sticky top-0 z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-8 sm:py-6">
+          <div className="mb-5 flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-indigo-600">Veille éditoriale</p>
+              <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
                 Curation de contenu
               </h1>
-              <p className="text-gray-500 text-xs mt-0.5">
+              <p className="mt-2 text-sm text-slate-500">
                 {currentAgency
                   ? `Agence active : ${currentAgency.agency.name}`
                   : "Suivez vos flux RSS et importez des sources pour nourrir votre IA"}
               </p>
             </div>
 
-            <div className="hidden items-center gap-2 text-xs font-medium tracking-wide text-gray-500 sm:flex">
-              <span className="text-gray-900 font-bold">Sources :</span>
-              <span className="text-gray-950 font-bold">{activeFeedCount}</span> flux actifs
+            <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-500 sm:flex">
+              <span className="font-bold text-slate-900">{activeFeedCount}</span> flux actifs
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setIsRssModalOpen(true)}
-              className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 sm:px-6 sm:text-sm"
+              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-3 py-2.5 text-xs font-bold text-white shadow-sm shadow-indigo-600/25 transition-colors hover:bg-indigo-700 sm:px-4 sm:text-sm"
             >
               <Image
                 src="/icons/creer-white.png"
@@ -378,7 +378,7 @@ export default function CurationPage() {
 
             <button
               onClick={() => setIsUrlModalOpen(true)}
-              className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 sm:px-6 sm:text-sm"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 sm:px-4 sm:text-sm"
             >
               <Image src="/icons/import.png" alt="" width={16} height={16} />
               <span>Importer une URL</span>
@@ -387,20 +387,20 @@ export default function CurationPage() {
             <button
               onClick={() => void handleIngestAll()}
               disabled={isIngestingAll || activeFeedCount === 0}
-              className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 disabled:opacity-50 sm:px-6 sm:text-sm"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 sm:px-4 sm:text-sm"
             >
               {isIngestingAll ? "Synchronisation..." : "Tout synchroniser"}
             </button>
           </div>
         </div>
 
-        <div className="flex gap-6 overflow-x-auto border-t border-gray-200 px-4 sm:gap-8 sm:px-8">
+        <div className="flex gap-6 overflow-x-auto border-t border-slate-100 px-4 sm:gap-8 sm:px-8">
           <button
             onClick={() => setActiveTab("rss")}
-            className={`py-4 font-semibold text-sm transition-colors border-b-2 ${
+            className={`border-b-2 py-3.5 text-sm font-bold transition-colors ${
               activeTab === "rss"
-                ? "text-blue-600 border-blue-600"
-                : "text-gray-600 border-transparent hover:text-gray-900"
+                ? "border-indigo-600 text-indigo-600"
+                : "border-transparent text-slate-500 hover:text-slate-900"
             }`}
           >
             Flux RSS suivis
@@ -408,10 +408,10 @@ export default function CurationPage() {
 
           <button
             onClick={() => setActiveTab("articles")}
-            className={`py-4 font-semibold text-sm transition-colors border-b-2 ${
+            className={`border-b-2 py-3.5 text-sm font-bold transition-colors ${
               activeTab === "articles"
-                ? "text-blue-600 border-blue-600"
-                : "text-gray-600 border-transparent hover:text-gray-900"
+                ? "border-indigo-600 text-indigo-600"
+                : "border-transparent text-slate-500 hover:text-slate-900"
             }`}
           >
             Articles sauvegardés
@@ -419,27 +419,27 @@ export default function CurationPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl space-y-4 px-4 py-6 sm:px-8 sm:py-8">
+      <div className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-8 sm:py-8">
         {isLoading && (
-          <div className="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-500 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
             Chargement de la curation...
           </div>
         )}
 
         {!isLoading && error && (
-          <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-sm font-medium text-red-600">
+          <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
             {error}
           </div>
         )}
 
         {!isLoading && notice && (
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm font-medium text-blue-700">
+          <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm font-semibold text-indigo-700">
             {notice}
           </div>
         )}
 
         {!isLoading && !currentAgency && (
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-base font-bold text-gray-900">
               Aucune agence active
             </h2>

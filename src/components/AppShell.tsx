@@ -61,14 +61,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname, publicRoute, router]);
 
   if (publicRoute) {
-    return <main className="min-h-dvh bg-gray-50">{children}</main>;
+    return <main className="min-h-dvh bg-[#f7f8fc]">{children}</main>;
   }
 
   if (isCheckingSession) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-gray-50">
-        <div className="flex items-center gap-3 text-sm font-medium text-gray-500">
-          <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-blue-600" />
+      <div className="flex min-h-dvh items-center justify-center bg-[#f7f8fc]">
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-500 shadow-sm">
+          <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-indigo-600" />
           Préparation de votre espace…
         </div>
       </div>
@@ -78,11 +78,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (!user && !sessionUnavailable) return null;
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-gray-50">
+    <div className="flex h-dvh overflow-hidden bg-[#f7f8fc]">
       <Sidebar user={user} onLoggedOut={() => setUser(null)} />
       <main className="min-w-0 flex-1 overflow-auto pt-16 md:pt-0">
         {sessionUnavailable ? (
-          <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs font-medium text-amber-800">
+          <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs font-semibold text-amber-800">
             Le service est momentanément indisponible. Certaines données peuvent ne pas se charger.
           </div>
         ) : null}
