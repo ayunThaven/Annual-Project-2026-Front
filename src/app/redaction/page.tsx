@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import MarkdownContent from "@/components/MarkdownContent";
 import {
   ApiError,
   ContentItem,
