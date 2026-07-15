@@ -27,6 +27,14 @@ import {
 
 type IdeaCount = 3 | 5 | 10;
 type AiModelChoice = string;
+type SettingsTab = 'organisation' | 'integrations' | 'automatisation' | 'ia';
+
+const settingsTabs: Array<{ id: SettingsTab; label: string }> = [
+  { id: 'organisation', label: 'Organisation' },
+  { id: 'integrations', label: 'Intégrations' },
+  { id: 'automatisation', label: 'Automatisation' },
+  { id: 'ia', label: 'IA et éditorial' },
+];
 
 const weekdayOptions = [
   { value: 1, label: 'Lundi' },
@@ -62,6 +70,8 @@ function formatScheduleDate(value?: string | null) {
 }
 
 export default function ParametresPage() {
+  const [activeSettingsTab, setActiveSettingsTab] =
+    useState<SettingsTab>('organisation');
   const [currentAgency, setCurrentAgency] = useState<CurrentAgency | null>(null);
   const [agency, setAgency] = useState<Agency | null>(null);
   const [agencyName, setAgencyName] = useState('SEO Genius Agency');
@@ -450,9 +460,45 @@ export default function ParametresPage() {
             ? 'Configurez votre environnement de travail.'
             : 'Commençons par créer votre espace de travail.'}
         </p>
+        {agency ? (
+          <nav
+            aria-label="Sections des paramètres"
+            className="mt-5 -mb-5 flex gap-1 overflow-x-auto"
+          >
+            {settingsTabs.map((tab) => {
+              const isActive = activeSettingsTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  id={`settings-tab-${tab.id}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={`settings-panel-${tab.id}`}
+                  onClick={() => setActiveSettingsTab(tab.id)}
+                  className={`shrink-0 border-b-2 px-3 py-3 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+                    isActive
+                      ? 'border-indigo-600 text-indigo-700'
+                      : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-900'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </nav>
+        ) : null}
       </div>
 
-      <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 sm:px-8 sm:py-8">
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-8 sm:py-8">
+        {activeSettingsTab === 'organisation' ? (
+          <section
+            id="settings-panel-organisation"
+            role="tabpanel"
+            aria-labelledby="settings-tab-organisation"
+            className="space-y-8"
+          >
         {!isLoadingAgency && !agency && !agencyError ? (
           <div className="rounded-3xl bg-slate-950 p-6 text-white shadow-xl shadow-slate-950/10 sm:p-8">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-300">
@@ -579,9 +625,17 @@ export default function ParametresPage() {
             </button>
           </div>
         </form>
+          </section>
+        ) : null}
 
-        {agency ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4">
+        {agency && activeSettingsTab === 'integrations' ? (
+          <section
+            id="settings-panel-integrations"
+            role="tabpanel"
+            aria-labelledby="settings-tab-integrations"
+            className="space-y-8"
+          >
+            <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4">
             <div className="border-b border-gray-100 pb-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -668,9 +722,16 @@ export default function ParametresPage() {
               </div>
             )}
           </div>
+          </section>
         ) : null}
 
-        {agency ? (
+        {agency && activeSettingsTab === 'automatisation' ? (
+          <section
+            id="settings-panel-automatisation"
+            role="tabpanel"
+            aria-labelledby="settings-tab-automatisation"
+            className="space-y-8"
+          >
           <form
             onSubmit={handleIdeaSettingsSubmit}
             className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4"
@@ -849,8 +910,16 @@ export default function ParametresPage() {
               </button>
             </div>
           </form>
+          </section>
         ) : null}
 
+        {agency && activeSettingsTab === 'ia' ? (
+          <section
+            id="settings-panel-ia"
+            role="tabpanel"
+            aria-labelledby="settings-tab-ia"
+            className="space-y-8"
+          >
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4">
           <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2">
             Contexte Editorial Global
@@ -884,7 +953,6 @@ export default function ParametresPage() {
           </div>
         </div>
 
-        {agency ? (
           <form
             onSubmit={handleAiSettingsSubmit}
             className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4"
@@ -1043,6 +1111,7 @@ export default function ParametresPage() {
               </button>
             </div>
           </form>
+          </section>
         ) : null}
       </div>
     </div>
