@@ -36,6 +36,8 @@ const settingsTabs: Array<{ id: SettingsTab; label: string }> = [
   { id: 'ia', label: 'IA et éditorial' },
 ];
 
+const isDemoProviderAvailable = process.env.NODE_ENV !== 'production';
+
 const weekdayOptions = [
   { value: 1, label: 'Lundi' },
   { value: 2, label: 'Mardi' },
@@ -999,7 +1001,9 @@ export default function ParametresPage() {
                   className="w-full text-sm border border-gray-200 text-gray-500 rounded-lg p-2.5 bg-white focus:outline-none focus:border-gray-400 disabled:bg-gray-50"
                 >
                   <option value="gemini">Google Gemini</option>
-                  <option value="demo">Demo locale</option>
+                  {isDemoProviderAvailable ? (
+                    <option value="demo">Demo locale</option>
+                  ) : null}
                 </select>
               </div>
 
