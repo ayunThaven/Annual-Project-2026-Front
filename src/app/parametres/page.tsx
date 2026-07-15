@@ -77,8 +77,6 @@ export default function ParametresPage() {
   const [currentAgency, setCurrentAgency] = useState<CurrentAgency | null>(null);
   const [agency, setAgency] = useState<Agency | null>(null);
   const [agencyName, setAgencyName] = useState('SEO Genius Agency');
-  const [notionDatabaseId, setNotionDatabaseId] = useState('');
-  const [notionWorkspaceName, setNotionWorkspaceName] = useState('');
   const [aiProvider, setAiProvider] = useState<AgencyAiProvider>('gemini');
   const [aiModel, setAiModel] = useState('gemini-3.5-flash');
   const [aiModelChoice, setAiModelChoice] =
@@ -297,8 +295,6 @@ export default function ParametresPage() {
         setCurrentAgency(current);
         setAgency(current.agency);
         setAgencyName(current.agency.name);
-        setNotionDatabaseId(current.agency.notionDatabaseId ?? '');
-        setNotionWorkspaceName(current.agency.notionWorkspaceName ?? '');
         await Promise.all([
           loadIdeaSettings(current.agency.id),
           loadAiSettings(current.agency.id),
@@ -338,20 +334,14 @@ export default function ParametresPage() {
       if (agency) {
         const updatedAgency = await updateAgency(agency.id, {
           name: agencyName,
-          notionDatabaseId,
-          notionWorkspaceName,
         });
 
         setAgency(updatedAgency);
         setAgencyName(updatedAgency.name);
-        setNotionDatabaseId(updatedAgency.notionDatabaseId ?? '');
-        setNotionWorkspaceName(updatedAgency.notionWorkspaceName ?? '');
         setAgencySuccess('Agence mise a jour.');
       } else {
         const createdAgency = await createAgency({
           name: agencyName,
-          notionDatabaseId,
-          notionWorkspaceName,
         });
 
         const current: CurrentAgency = {
@@ -363,8 +353,6 @@ export default function ParametresPage() {
         setCurrentAgency(current);
         setAgency(createdAgency.agency);
         setAgencyName(createdAgency.agency.name);
-        setNotionDatabaseId(createdAgency.agency.notionDatabaseId ?? '');
-        setNotionWorkspaceName(createdAgency.agency.notionWorkspaceName ?? '');
         setAgencySuccess('Agence creee et rattachee a votre compte.');
         await Promise.all([
           loadIdeaSettings(createdAgency.agency.id),
@@ -579,38 +567,6 @@ export default function ParametresPage() {
                 minLength={2}
               />
             </div>
-
-            {agency ? (
-              <>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                    Base Notion
-                  </label>
-                  <input
-                    type="text"
-                    value={notionDatabaseId}
-                    onChange={(event) => setNotionDatabaseId(event.target.value)}
-                    disabled={isLoadingAgency || !canEditAgency}
-                    placeholder="ID de la database"
-                    className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400 placeholder-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                    Workspace Notion
-                  </label>
-                  <input
-                    type="text"
-                    value={notionWorkspaceName}
-                    onChange={(event) => setNotionWorkspaceName(event.target.value)}
-                    disabled={isLoadingAgency || !canEditAgency}
-                    placeholder="Nom du workspace"
-                    className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400 placeholder-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-              </>
-            ) : null}
           </div>
 
           <div className="flex justify-end pt-2">
