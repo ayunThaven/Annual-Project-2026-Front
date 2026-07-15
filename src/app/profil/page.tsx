@@ -56,15 +56,16 @@ export default function ProfilPage() {
   }
 
   return (
-    <div className="w-full">
-      <div className="bg-white border-b border-gray-200 px-8 py-4 sticky top-0 z-10">
-        <h1 className="text-2xl font-bold text-gray-900">Mon Compte</h1>
-        <p className="text-gray-500 text-xs mt-0.5">
+    <div className="min-h-full">
+      <div className="sticky top-0 z-10 border-b border-slate-200/80 bg-white/85 px-4 py-5 backdrop-blur sm:px-8 sm:py-6">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-indigo-600">Compte</p>
+        <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">Mon profil</h1>
+        <p className="mt-2 text-sm text-slate-500">
           Consultez la session active et les agences rattachees.
         </p>
       </div>
 
-      <div className="max-w-3xl mx-auto px-8 py-8 space-y-8">
+      <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-8 sm:py-8">
         {isLoading ? (
           <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm text-sm text-gray-500">
             Chargement du profil...

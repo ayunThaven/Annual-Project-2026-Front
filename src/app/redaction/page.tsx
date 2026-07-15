@@ -239,22 +239,22 @@ export default function RedactionPage() {
   }
 
   return (
-    <div className="relative flex h-full min-h-[calc(100dvh-4rem)] w-full overflow-hidden bg-white text-gray-800 md:min-h-0">
-      <div className="flex-1 flex flex-col bg-white h-full transition-all duration-300">
-        <div className="flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-4 py-4 sm:px-8">
+    <div className="relative flex h-full min-h-[calc(100dvh-4rem)] w-full overflow-hidden bg-[#f7f8fc] text-slate-800 md:min-h-0">
+      <div className="flex h-full flex-1 flex-col transition-all duration-300">
+        <div className="flex items-center justify-between gap-4 border-b border-slate-200/80 bg-white/85 px-4 py-4 backdrop-blur sm:px-8">
           <div className="flex items-center gap-2">
             <Image
               src="/icons/contenu-ia.png"
               alt=""
               width={18}
               height={18}
-              className="opacity-90"
+              className="rounded-lg bg-indigo-50 p-1 opacity-90"
             />
             <div>
-              <h1 className="font-bold text-gray-900 text-lg">
+              <h1 className="text-lg font-extrabold tracking-tight text-slate-950">
                 {activeContent?.title || "Rédaction IA"}
               </h1>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs font-medium text-slate-500">
                 {activeContent ? "Brouillon enregistré automatiquement" : "Assistant Gemini"}
               </p>
             </div>
@@ -264,7 +264,7 @@ export default function RedactionPage() {
             {activeContent ? (
               <Link
                 href="/contenus"
-                className="hidden rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 sm:inline-flex"
+                className="hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 sm:inline-flex"
               >
                 Voir mes contenus
               </Link>
@@ -272,10 +272,10 @@ export default function RedactionPage() {
             <button
               type="button"
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-              className={`px-3 py-2 rounded-lg border transition-all text-sm font-semibold ${
+              className={`rounded-xl border px-3 py-2 text-sm font-bold transition-all ${
                 isSettingsOpen
-                  ? "bg-blue-50 border-blue-200 text-blue-600"
-                  : "hover:bg-gray-100 border-gray-200 text-gray-700"
+                  ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
               }`}
             >
               Réglages
@@ -284,7 +284,7 @@ export default function RedactionPage() {
         </div>
 
         {error ? (
-          <div className="mx-8 mt-4 bg-red-50 border border-red-100 rounded-lg p-3 text-sm font-medium text-red-600">
+          <div className="mx-4 mt-4 rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm font-semibold text-rose-700 sm:mx-8">
             <p>{error}</p>
             {needsAuthentication ? (
               <div className="flex flex-wrap gap-2 mt-3">
@@ -305,7 +305,7 @@ export default function RedactionPage() {
           </div>
         ) : null}
 
-        <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 lg:px-16 lg:py-8 space-y-6">
+        <div className="flex-1 space-y-5 overflow-y-auto px-4 py-6 sm:px-8 lg:px-16 lg:py-8">
           {isLoadingContent ? (
             <div className="text-sm text-gray-500">Chargement du brief…</div>
           ) : null}
@@ -317,14 +317,14 @@ export default function RedactionPage() {
               }`}
             >
               <div
-                className={`border rounded-lg p-5 relative max-w-3xl ${
+                className={`relative max-w-3xl rounded-2xl border p-5 ${
                   message.sender === "user"
-                    ? "bg-blue-600 border-blue-600 text-white"
-                    : "bg-white border-gray-200 text-gray-900"
+                    ? "border-indigo-600 bg-indigo-600 text-white shadow-sm shadow-indigo-600/20"
+                    : "border-slate-200 bg-white text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
                 }`}
               >
                 {message.sender === "ai" ? (
-                  <MarkdownContent className="text-gray-900">
+                  <MarkdownContent className="text-slate-800">
                     {message.text}
                   </MarkdownContent>
                 ) : (
@@ -336,7 +336,7 @@ export default function RedactionPage() {
                   className={`text-[10px] mt-3 flex justify-end gap-2 ${
                     message.sender === "user"
                       ? "text-blue-100"
-                      : "text-gray-400"
+                      : "text-slate-400"
                   }`}
                 >
                   {message.model ? <span>{message.model}</span> : null}
@@ -351,10 +351,10 @@ export default function RedactionPage() {
           ) : null}
         </div>
 
-        <div className="border-t border-gray-100 bg-white p-4 sm:p-6">
+        <div className="border-t border-slate-200/80 bg-white/90 p-4 backdrop-blur sm:p-6">
           <form
             onSubmit={handleSendMessage}
-            className="max-w-4xl mx-auto flex gap-3 items-center"
+            className="mx-auto flex max-w-4xl items-center gap-3 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"
           >
             <input
               type="text"
@@ -365,12 +365,12 @@ export default function RedactionPage() {
                   ? "Décrivez la modification ou la version souhaitée…"
                   : "Décrivez le contenu que vous souhaitez créer…"
               }
-              className="flex-1 border border-gray-200 rounded-lg px-5 py-3 text-sm focus:outline-none focus:border-gray-400 placeholder-gray-400 bg-white"
+              className="flex-1 bg-transparent px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
             />
             <button
               type="submit"
               disabled={isGenerating}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg h-11 px-5 flex items-center justify-center transition-colors shadow-sm flex-shrink-0 text-sm font-semibold"
+              className="flex h-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 px-5 text-sm font-bold text-white shadow-sm shadow-indigo-600/25 transition-colors hover:bg-indigo-700 disabled:bg-slate-300"
             >
               {isGenerating ? "..." : "Envoyer"}
             </button>
@@ -383,13 +383,13 @@ export default function RedactionPage() {
           type="button"
           aria-label="Fermer les réglages"
           onClick={() => setIsSettingsOpen(false)}
-          className="absolute inset-0 z-20 bg-black/10"
+          className="absolute inset-0 z-20 bg-slate-950/20 backdrop-blur-[1px]"
         />
       ) : null}
 
       <div
         aria-hidden={!isSettingsOpen}
-        className={`absolute inset-y-0 right-0 z-30 flex h-full flex-col border-l border-gray-200 bg-white shadow-xl transition-all duration-300 ${
+        className={`absolute inset-y-0 right-0 z-30 flex h-full flex-col border-l border-slate-200 bg-white shadow-2xl shadow-slate-950/15 transition-all duration-300 ${
           isSettingsOpen
             ? "w-72 opacity-100"
             : "invisible w-0 opacity-0 pointer-events-none border-l-0"

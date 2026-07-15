@@ -141,14 +141,15 @@ export default function EquipePage() {
   }
 
   return (
-    <div className="w-full">
-      <div className="bg-white border-b border-gray-200 px-8 py-4 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto flex items-center justify-between mb-4">
+    <div className="min-h-full">
+      <div className="sticky top-0 z-10 border-b border-slate-200/80 bg-white/85 px-4 py-5 backdrop-blur sm:px-8 sm:py-6">
+        <div className="mx-auto mb-4 flex max-w-7xl items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-indigo-600">Collaboration</p>
+            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
               Gestion de l&apos;équipe
             </h1>
-            <p className="text-gray-500 text-xs mt-0.5">
+            <p className="mt-2 text-sm text-slate-500">
               {currentAgency
                 ? `Agence active : ${currentAgency.agency.name}`
                 : "Gérez les membres de votre agence et attribuez leurs rôles"}
@@ -159,7 +160,7 @@ export default function EquipePage() {
         {canManageTeam && (
           <button
             onClick={() => setIsInviteOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg text-sm transition-colors flex items-center gap-2"
+            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-indigo-600/25 transition-colors hover:bg-indigo-700"
           >
             <span>+</span>
             <span>Inviter un collaborateur</span>
@@ -167,7 +168,7 @@ export default function EquipePage() {
         )}
       </div>
 
-      <div className="max-w-7xl mx-auto px-8 py-8 space-y-4">
+      <div className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-8 sm:py-8">
         {isLoading && (
           <div className="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-500 shadow-sm">
             Chargement de l&apos;agence...

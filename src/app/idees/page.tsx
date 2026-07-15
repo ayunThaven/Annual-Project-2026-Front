@@ -1,11 +1,17 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import MarkdownContent from '@/components/MarkdownContent';
-import Modal from '@/components/Modal';
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import MarkdownContent from "@/components/MarkdownContent";
+import Modal from "@/components/Modal";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import EmptyState from "@/components/ui/EmptyState";
+import PageHeader from "@/components/ui/PageHeader";
+import StatCard from "@/components/ui/StatCard";
+import TextField from "@/components/ui/TextField";
 import {
   acceptContentIdea,
   ApiError,
@@ -15,64 +21,34 @@ import {
   getCurrentAgency,
   listContentIdeas,
   updateContentIdea,
-} from '@/lib/api';
+} from "@/lib/api";
 
 type IdeaCount = 3 | 5 | 10;
 
-const countOptions: IdeaCount[] = [3, 5, 10];
-
-const duplicateLabels = {
-  UNIQUE: 'Unique',
-  POSSIBLE_DUPLICATE: 'A verifier',
-  DUPLICATE: 'Doublon probable',
-};
-
-const duplicateClasses = {
-  UNIQUE: 'bg-green-50 text-green-700 border-green-100',
-  POSSIBLE_DUPLICATE: 'bg-amber-50 text-amber-700 border-amber-100',
-  DUPLICATE: 'bg-red-50 text-red-700 border-red-100',
-};
-
-const statusLabels = {
-  NEW: 'A valider',
-  ACCEPTED: 'Ajoute',
-  DISMISSED: 'Ignore',
+const duplicateMeta = {
+  UNIQUE: { label: "Unique", tone: "success" as const },
+  POSSIBLE_DUPLICATE: { label: "À comparer", tone: "warning" as const },
+  DUPLICATE: { label: "Doublon probable", tone: "danger" as const },
 };
 
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiError) {
-    if (error.status === 401) return 'Vous devez etre connecte.';
-    if (error.status === 404) return 'Aucune agence active.';
-    if (error.status === 400 && error.message.includes('not configured')) {
-      return "Le provider IA n'est pas encore configure cote serveur.";
-    }
-
+    if (error.status === 401) return "Vous devez être connecté.";
+    if (error.status === 404) return "Aucune agence active.";
+    if (error.status === 400 && error.message.includes("not configured")) return "Le fournisseur IA n’est pas encore configuré.";
     return error.message;
   }
-
-  return 'Une erreur est survenue pendant le chargement des idees.';
+  return "Une erreur est survenue pendant le chargement des idées.";
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
 function mergeIdeas(currentIdeas: ContentIdea[], nextIdeas: ContentIdea[]) {
   const byId = new Map<string, ContentIdea>();
-
-  [...nextIdeas, ...currentIdeas].forEach((idea) => {
-    byId.set(idea.id, idea);
-  });
-
-  return Array.from(byId.values()).sort(
-    (left, right) =>
-      new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
-  );
+  [...nextIdeas, ...currentIdeas].forEach((idea) => byId.set(idea.id, idea));
+  return Array.from(byId.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export default function IdeesPage() {
@@ -82,8 +58,8 @@ export default function IdeesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [theme, setTheme] = useState('');
-  const [sector, setSector] = useState('');
+  const [theme, setTheme] = useState("");
+  const [sector, setSector] = useState("");
   const [count, setCount] = useState<IdeaCount>(3);
   const [checkDuplicates, setCheckDuplicates] = useState(true);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
@@ -91,25 +67,19 @@ export default function IdeesPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const stats = useMemo(
-    () => ({
-      total: ideas.length,
-      newIdeas: ideas.filter((idea) => idea.status === 'NEW').length,
-      scheduled: ideas.filter((idea) => idea.source === 'SCHEDULED').length,
-    }),
-    [ideas],
-  );
+  const stats = useMemo(() => ({
+    total: ideas.length,
+    newIdeas: ideas.filter((idea) => idea.status === "NEW").length,
+    scheduled: ideas.filter((idea) => idea.source === "SCHEDULED").length,
+  }), [ideas]);
 
   async function loadIdeas() {
     setIsLoading(true);
     setError(null);
-
     try {
       const agency = await getCurrentAgency();
-      const loadedIdeas = await listContentIdeas(agency.agency.id);
-
       setCurrentAgency(agency);
-      setIdeas(loadedIdeas);
+      setIdeas(await listContentIdeas(agency.agency.id));
     } catch (caughtError) {
       setCurrentAgency(null);
       setIdeas([]);
@@ -119,43 +89,25 @@ export default function IdeesPage() {
     }
   }
 
+  useEffect(() => { void loadIdeas(); }, []);
   useEffect(() => {
-    void loadIdeas();
-  }, []);
-
-  useEffect(() => {
-    if (
-      currentAgency &&
-      new URLSearchParams(window.location.search).get('generate') === '1'
-    ) {
-      setIsGenerateModalOpen(true);
-    }
+    if (currentAgency && new URLSearchParams(window.location.search).get("generate") === "1") setIsGenerateModalOpen(true);
   }, [currentAgency]);
 
   async function handleGenerate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     if (!currentAgency || !theme.trim() || isGenerating) return;
-
     setIsGenerating(true);
     setError(null);
-    setSuccess(null);
-
     try {
-      const result = await generateContentIdeas(currentAgency.agency.id, {
-        theme,
-        sector: sector.trim() || undefined,
-        count,
-        checkDuplicates,
-      });
-
-      setIdeas((currentIdeas) => mergeIdeas(currentIdeas, result.ideas));
-      setTheme('');
-      setSector('');
+      const result = await generateContentIdeas(currentAgency.agency.id, { theme, sector: sector.trim() || undefined, count, checkDuplicates });
+      setIdeas((current) => mergeIdeas(current, result.ideas));
+      setTheme("");
+      setSector("");
       setCount(3);
       setCheckDuplicates(true);
       setIsGenerateModalOpen(false);
-      setSuccess(`${result.ideas.length} idee(s) ajoutee(s) a l'inbox.`);
+      setSuccess(`${result.ideas.length} idées viennent d’être ajoutées à votre inbox.`);
     } catch (caughtError) {
       setError(getErrorMessage(caughtError));
     } finally {
@@ -164,26 +116,14 @@ export default function IdeesPage() {
   }
 
   async function handleAccept(idea: ContentIdea) {
-    if (!currentAgency || idea.status !== 'NEW') return;
-
+    if (!currentAgency || idea.status !== "NEW") return;
     setAcceptingId(idea.id);
     setError(null);
-    setSuccess(null);
-
     try {
       const updatedIdea = await acceptContentIdea(currentAgency.agency.id, idea.id);
-
-      setIdeas((currentIdeas) =>
-        currentIdeas.map((currentIdea) =>
-          currentIdea.id === updatedIdea.id ? updatedIdea : currentIdea,
-        ),
-      );
-      const contentId = updatedIdea.acceptedContent?.id;
-      if (contentId) {
-        router.push(`/redaction?contentId=${contentId}`);
-      } else {
-        setSuccess('Idée ajoutée aux contenus.');
-      }
+      setIdeas((current) => current.map((item) => item.id === updatedIdea.id ? updatedIdea : item));
+      if (updatedIdea.acceptedContent?.id) router.push(`/redaction?contentId=${updatedIdea.acceptedContent.id}`);
+      else setSuccess("Idée ajoutée à vos contenus.");
     } catch (caughtError) {
       setError(getErrorMessage(caughtError));
     } finally {
@@ -192,22 +132,12 @@ export default function IdeesPage() {
   }
 
   async function handleDismiss(idea: ContentIdea) {
-    if (!currentAgency || idea.status !== 'NEW') return;
-
+    if (!currentAgency || idea.status !== "NEW") return;
     setDismissingId(idea.id);
     setError(null);
-    setSuccess(null);
-
     try {
-      const updatedIdea = await updateContentIdea(currentAgency.agency.id, idea.id, {
-        status: 'DISMISSED',
-      });
-
-      setIdeas((currentIdeas) =>
-        currentIdeas.map((currentIdea) =>
-          currentIdea.id === updatedIdea.id ? updatedIdea : currentIdea,
-        ),
-      );
+      const updatedIdea = await updateContentIdea(currentAgency.agency.id, idea.id, { status: "DISMISSED" });
+      setIdeas((current) => current.map((item) => item.id === updatedIdea.id ? updatedIdea : item));
     } catch (caughtError) {
       setError(getErrorMessage(caughtError));
     } finally {
@@ -216,286 +146,52 @@ export default function IdeesPage() {
   }
 
   return (
-    <div className="w-full">
-      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-4 sm:px-8">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Idees de contenu IA
-            </h1>
-            <p className="text-gray-500 text-xs mt-0.5">
-              Inbox de sujets SEO generes manuellement ou automatiquement
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setIsGenerateModalOpen(true)}
-            disabled={!currentAgency}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-2 px-5 rounded-lg text-sm transition-colors flex items-center gap-2"
-          >
-            <span>+</span>
-            <span>Générer</span>
-          </button>
-        </div>
-
-        <div className="max-w-7xl mx-auto mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-[11px] uppercase font-semibold text-gray-500">
-              Total
-            </p>
-            <p className="text-lg font-bold text-gray-900">{stats.total}</p>
-          </div>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-[11px] uppercase font-semibold text-gray-500">
-              A valider
-            </p>
-            <p className="text-lg font-bold text-gray-900">{stats.newIdeas}</p>
-          </div>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-            <p className="text-[11px] uppercase font-semibold text-gray-500">
-              Planifiees
-            </p>
-            <p className="text-lg font-bold text-gray-900">{stats.scheduled}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-7xl space-y-4 px-4 py-6 sm:px-8 sm:py-8">
-        {isLoading ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 text-sm text-gray-500">
-            Chargement des idees...
-          </div>
-        ) : null}
-
-        {!isLoading && error ? (
-          <div className="bg-red-50 border border-red-100 rounded-lg p-4 text-sm font-medium text-red-600">
-            <p>{error}</p>
-            {error === 'Aucune agence active.' ? (
-              <Link
-                href="/parametres"
-                className="inline-flex mt-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded-lg text-xs"
-              >
-                Configurer une agence
-              </Link>
-            ) : null}
-          </div>
-        ) : null}
-
-        {!isLoading && success ? (
-          <div className="bg-green-50 border border-green-100 rounded-lg p-4 text-sm font-medium text-green-700">
-            {success}
-          </div>
-        ) : null}
-
-        {!isLoading && currentAgency && ideas.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-            <Image
-              src="/icons/idees.png"
-              alt=""
-              width={34}
-              height={34}
-              className="mx-auto opacity-70"
-            />
-            <h2 className="mt-3 text-base font-bold text-gray-900">
-              Aucune idee pour le moment
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Lancez une generation ou activez la generation automatique.
-            </p>
-          </div>
-        ) : null}
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {ideas.map((idea) => (
-            <article
-              key={idea.id}
-              className={`bg-white rounded-lg border p-5 flex flex-col gap-4 transition-shadow hover:shadow-md ${
-                idea.status === 'DISMISSED'
-                  ? 'border-gray-100 opacity-70'
-                  : 'border-gray-200'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2">
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-700">
-                      {idea.source === 'SCHEDULED' ? 'Planifiee' : 'Manuelle'}
-                    </span>
-                    <span
-                      className={`rounded border px-2 py-0.5 text-[10px] font-bold uppercase ${
-                        duplicateClasses[idea.duplicateStatus]
-                      }`}
-                    >
-                      {duplicateLabels[idea.duplicateStatus]}
-                    </span>
-                    <span className="rounded border border-gray-100 bg-gray-50 px-2 py-0.5 text-[10px] font-bold uppercase text-gray-600">
-                      {statusLabels[idea.status]}
-                    </span>
-                  </div>
-
-                  <h2 className="text-base font-bold text-gray-900 leading-snug">
-                    {idea.title}
-                  </h2>
-                </div>
-
-                <span className="shrink-0 text-[11px] text-gray-400">
-                  {formatDate(idea.createdAt)}
-                </span>
-              </div>
-
-              <div className="space-y-3 text-sm">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-[11px] uppercase font-semibold text-gray-400">
-                      Angle
-                    </p>
-                    <p className="text-gray-700">{idea.angle || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase font-semibold text-gray-400">
-                      Type
-                    </p>
-                    <p className="text-gray-700">{idea.contentType || '-'}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-[11px] uppercase font-semibold text-gray-400">
-                    Intention SEO
-                  </p>
-                  <p className="text-gray-700">{idea.searchIntent || '-'}</p>
-                </div>
-
-                {idea.rationale ? (
-                  <MarkdownContent className="text-gray-600">
-                    {idea.rationale}
-                  </MarkdownContent>
-                ) : null}
-
-                {idea.keywords?.length ? (
-                  <div className="flex flex-wrap gap-2">
-                    {idea.keywords.map((keyword) => (
-                      <span
-                        key={keyword}
-                        className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600"
-                      >
-                        {keyword}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-
-                {idea.similarItems?.length ? (
-                  <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs text-amber-800">
-                    <p className="font-semibold">Similarites detectees</p>
-                    <p className="mt-1">
-                      {idea.similarItems
-                        .map((item) => `${item.title} (${Math.round(item.score * 100)}%)`)
-                        .join(', ')}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
-                {idea.status === 'ACCEPTED' && idea.acceptedContent ? (
-                  <Link
-                    href={`/redaction?contentId=${idea.acceptedContent.id}`}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
-                  >
-                    Ouvrir dans Rédaction
-                  </Link>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => void handleDismiss(idea)}
-                      disabled={idea.status !== 'NEW' || dismissingId === idea.id}
-                      className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:text-gray-300"
-                    >
-                      {dismissingId === idea.id ? '...' : 'Ignorer'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleAccept(idea)}
-                      disabled={idea.status !== 'NEW' || acceptingId === idea.id}
-                      className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-gray-300"
-                    >
-                      {acceptingId === idea.id ? 'Préparation...' : 'Préparer ce contenu'}
-                    </button>
-                  </>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      </div>
-
-      <Modal
-        isOpen={isGenerateModalOpen}
-        onClose={() => setIsGenerateModalOpen(false)}
-        title="Generer de nouvelles idees"
-        description="Definissez un theme, un secteur et le nombre d'idees a proposer."
+    <div className="min-h-full">
+      <PageHeader
+        eyebrow="Idéation assistée"
+        title="Votre inbox d’opportunités"
+        description="Générez des sujets, évaluez leur potentiel et transformez les meilleurs en briefs actionnables."
+        actions={<Button onClick={() => setIsGenerateModalOpen(true)} disabled={!currentAgency}>✦ Générer des idées</Button>}
       >
-        <form onSubmit={handleGenerate} className="space-y-4">
-          <input
-            type="text"
-            value={theme}
-            onChange={(event) => setTheme(event.target.value)}
-            placeholder="Theme principal : SEO, IA, marketing..."
-            className="w-full rounded-lg border border-gray-200 p-2.5 text-sm text-gray-700 focus:border-gray-400 focus:outline-none"
-            required
-            maxLength={160}
-          />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <StatCard value={stats.total} label="Idées en mémoire" detail="Toutes les propositions reçues" />
+          <StatCard value={stats.newIdeas} label="À décider" detail="En attente de votre validation" />
+          <StatCard value={stats.scheduled} label="Automatiques" detail="Issues de votre cadence" />
+        </div>
+      </PageHeader>
 
-          <input
-            type="text"
-            value={sector}
-            onChange={(event) => setSector(event.target.value)}
-            placeholder="Secteur : e-commerce, agence, SaaS..."
-            className="w-full rounded-lg border border-gray-200 p-2.5 text-sm text-gray-700 focus:border-gray-400 focus:outline-none"
-            maxLength={120}
-          />
+      <div className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-8 sm:py-8">
+        {isLoading ? <div className="grid gap-5 lg:grid-cols-2">{[1, 2, 3, 4].map((item) => <div key={item} className="h-64 animate-pulse rounded-2xl bg-slate-200/60" />)}</div> : null}
+        {error ? <Card className="border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{error}{error === "Aucune agence active." ? <Link href="/parametres" className="ml-2 font-bold underline">Configurer l’agence</Link> : null}</Card> : null}
+        {success ? <Card className="border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">{success}</Card> : null}
 
-          <select
-            value={count}
-            onChange={(event) => setCount(Number(event.target.value) as IdeaCount)}
-            className="w-full rounded-lg border border-gray-200 bg-white p-2.5 text-sm text-gray-700 focus:border-gray-400 focus:outline-none"
-          >
-            {countOptions.map((option) => (
-              <option key={option} value={option}>
-                {option} idees
-              </option>
-            ))}
-          </select>
+        {!isLoading && currentAgency && !ideas.length ? <EmptyState icon="✦" title="Votre prochaine idée commence ici" description="Décrivez un thème, un secteur ou une actualité : l’IA préparera des angles à prioriser." action={<Button onClick={() => setIsGenerateModalOpen(true)}>Générer des idées</Button>} /> : null}
 
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              checked={checkDuplicates}
-              onChange={(event) => setCheckDuplicates(event.target.checked)}
-            />
-            Verifier les doublons
-          </label>
+        {!isLoading && ideas.length ? <div className="grid gap-5 xl:grid-cols-2">
+          {ideas.map((idea) => {
+            const duplicate = duplicateMeta[idea.duplicateStatus];
+            const isNew = idea.status === "NEW";
+            return <Card key={idea.id} className={`flex min-h-72 flex-col p-5 transition hover:-translate-y-0.5 hover:shadow-md sm:p-6 ${idea.status === "DISMISSED" ? "opacity-60" : ""}`}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-wrap gap-2"><Badge tone={idea.source === "SCHEDULED" ? "indigo" : "neutral"}>{idea.source === "SCHEDULED" ? "Automatique" : "Manuelle"}</Badge><Badge tone={duplicate.tone}>{duplicate.label}</Badge></div>
+                <span className="shrink-0 text-[11px] font-medium text-slate-400">{formatDate(idea.createdAt)}</span>
+              </div>
+              <div className="mt-5"><p className="text-[11px] font-bold uppercase tracking-[0.16em] text-indigo-600">{idea.contentType || "Contenu"}</p><h2 className="mt-2 text-lg font-extrabold leading-snug tracking-tight text-slate-950">{idea.title}</h2><p className="mt-2 text-sm font-medium text-slate-600">{idea.angle || idea.searchIntent || "Angle à préciser"}</p></div>
+              {idea.rationale ? <div className="mt-4 line-clamp-4 text-sm leading-6 text-slate-500"><MarkdownContent>{idea.rationale}</MarkdownContent></div> : null}
+              {idea.keywords?.length ? <div className="mt-4 flex flex-wrap gap-1.5">{idea.keywords.slice(0, 6).map((keyword) => <span key={keyword} className="rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">{keyword}</span>)}</div> : null}
+              <div className="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 pt-5"><Badge tone={idea.status === "ACCEPTED" ? "success" : idea.status === "DISMISSED" ? "neutral" : "warning"}>{idea.status === "ACCEPTED" ? "Ajoutée au calendrier" : idea.status === "DISMISSED" ? "Ignorée" : "À valider"}</Badge>{isNew ? <div className="flex gap-2"><Button variant="quiet" onClick={() => void handleDismiss(idea)} disabled={dismissingId === idea.id}>{dismissingId === idea.id ? "…" : "Ignorer"}</Button><Button onClick={() => void handleAccept(idea)} disabled={acceptingId === idea.id}>{acceptingId === idea.id ? "Préparation…" : "Préparer"} <span>→</span></Button></div> : idea.acceptedContent ? <Link href={`/redaction?contentId=${idea.acceptedContent.id}`} className="text-xs font-bold text-indigo-600 hover:text-indigo-700">Ouvrir la rédaction →</Link> : null}</div>
+            </Card>;
+          })}
+        </div> : null}
+      </div>
 
-          <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
-            <button
-              type="button"
-              onClick={() => setIsGenerateModalOpen(false)}
-              className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              Annuler
-            </button>
-
-            <button
-              type="submit"
-              disabled={isGenerating || !theme.trim()}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-gray-300"
-            >
-              {isGenerating ? 'Generation...' : 'Generer'}
-            </button>
-          </div>
+      <Modal isOpen={isGenerateModalOpen} onClose={() => setIsGenerateModalOpen(false)} title="Générer de nouvelles idées" description="Cadrez la recherche, puis validez chaque proposition dans votre inbox.">
+        <form onSubmit={handleGenerate} className="space-y-5">
+          <TextField label="Thème à explorer" value={theme} onChange={(event) => setTheme(event.target.value)} placeholder="Ex. La productivité des équipes commerciales" required autoFocus />
+          <TextField label="Secteur ou contexte" value={sector} onChange={(event) => setSector(event.target.value)} placeholder="Ex. SaaS B2B, immobilier, santé…" />
+          <div><p className="text-xs font-bold text-slate-700">Nombre de propositions</p><div className="mt-2 grid grid-cols-3 gap-2">{([3, 5, 10] as IdeaCount[]).map((value) => <button key={value} type="button" onClick={() => setCount(value)} className={`rounded-xl border px-3 py-2.5 text-sm font-bold transition ${count === value ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>{value} idées</button>)}</div></div>
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-slate-50 p-3.5"><input type="checkbox" checked={checkDuplicates} onChange={(event) => setCheckDuplicates(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /><span><span className="block text-sm font-bold text-slate-700">Vérifier les doublons</span><span className="mt-1 block text-xs leading-5 text-slate-500">Comparer les propositions avec les sujets déjà existants.</span></span></label>
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-5"><Button variant="quiet" onClick={() => setIsGenerateModalOpen(false)}>Annuler</Button><Button type="submit" disabled={!theme.trim() || isGenerating}>{isGenerating ? "Génération…" : "Lancer la génération"}</Button></div>
         </form>
       </Modal>
     </div>

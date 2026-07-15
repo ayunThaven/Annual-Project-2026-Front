@@ -42,11 +42,11 @@ export default function Modal({ isOpen, onClose, title, description, children }:
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
       <button
         type="button"
         aria-label="Fermer la fenêtre"
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -55,13 +55,13 @@ export default function Modal({ isOpen, onClose, title, description, children }:
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
-        className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-gray-200 bg-white p-5 shadow-xl sm:p-6"
+        className="relative z-10 max-h-[calc(100dvh-3rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-950/20 sm:p-7"
       >
-        <div className="mb-5 flex items-start justify-between gap-4 border-b border-gray-100 pb-4">
+        <div className="mb-6 flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
           <div>
-            <h2 id={titleId} className="text-lg font-bold text-gray-900">{title}</h2>
+            <h2 id={titleId} className="text-xl font-extrabold tracking-tight text-slate-950">{title}</h2>
             {description && (
-              <p id={descriptionId} className="mt-1 text-xs text-gray-500">{description}</p>
+              <p id={descriptionId} className="mt-1.5 text-sm leading-6 text-slate-500">{description}</p>
             )}
           </div>
 
@@ -70,7 +70,7 @@ export default function Modal({ isOpen, onClose, title, description, children }:
             type="button"
             onClick={onClose}
             aria-label="Fermer"
-            className="rounded-lg px-2 py-1 text-sm font-bold text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            className="rounded-xl px-2.5 py-1.5 text-lg font-bold leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           >
             ×
           </button>
