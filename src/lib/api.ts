@@ -250,6 +250,59 @@ type ApiRequestOptions = Omit<RequestInit, 'body'> & {
   body?: unknown;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function getReadableErrorMessage(value: unknown, fallback: string): string {
+  if (typeof value === 'string') {
+    const trimmedValue = value.trim();
+
+    if (!trimmedValue) return fallback;
+
+    try {
+      const parsedValue = JSON.parse(trimmedValue) as unknown;
+
+      if (typeof parsedValue !== 'string') {
+        return getReadableErrorMessage(parsedValue, fallback);
+      }
+    } catch {
+      // Une réponse texte classique n'a pas besoin d'être désérialisée.
+    }
+
+    return trimmedValue;
+  }
+
+  if (Array.isArray(value)) {
+    const messages = value
+      .map((item) => getReadableErrorMessage(item, ''))
+      .filter(Boolean);
+
+    return messages.length ? messages.join(', ') : fallback;
+  }
+
+  if (isRecord(value)) {
+    for (const key of ['message', 'error', 'detail', 'details', 'description']) {
+      if (key in value) {
+        const message = getReadableErrorMessage(value[key], '');
+        if (message) return message;
+      }
+    }
+  }
+
+  return fallback;
+}
+
+function parseResponseBody(text: string): unknown {
+  if (!text) return undefined;
+
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
+}
+
 async function apiRequest<T>(
   path: string,
   options: ApiRequestOptions = {},
@@ -269,12 +322,13 @@ async function apiRequest<T>(
     credentials: 'include',
   });
   const text = await response.text();
-  const data = text ? JSON.parse(text) : undefined;
+  const data = parseResponseBody(text);
 
   if (!response.ok) {
-    const message = Array.isArray(data?.message)
-      ? data.message.join(', ')
-      : data?.message || response.statusText;
+    const message = getReadableErrorMessage(
+      data,
+      response.statusText || 'Une erreur est survenue.',
+    );
 
     throw new ApiError(message, response.status, data);
   }
