@@ -770,3 +770,20 @@ export function disconnectNotion(agencyId: string) {
     },
   );
 }
+
+export type NotionSyncSummary = {
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: number;
+  /** Pages marquees "synchronisees" mais absentes/a la corbeille cote Notion, recreees. */
+  recovered: number;
+};
+
+/** Force la resynchronisation des contenus planifies/publies vers Notion. */
+export function syncScheduledContentToNotion(agencyId: string) {
+  return apiRequest<NotionSyncSummary>(
+    `/agencies/${agencyId}/notion/sync/push-content`,
+    { method: 'POST' },
+  );
+}

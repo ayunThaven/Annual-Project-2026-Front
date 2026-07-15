@@ -6,7 +6,14 @@ import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/ui/PageHeader";
-import { ApiError, getAgencyContent, getCurrentAgency, type ContentItem } from "@/lib/api";
+import {
+  ApiError,
+  getAgencyContent,
+  getCurrentAgency,
+  syncScheduledContentToNotion,
+  type ContentItem,
+  type NotionSyncSummary,
+} from "@/lib/api";
 
 function formatDate(date?: string | null) {
   if (!date) return "Date à définir";
@@ -35,26 +42,65 @@ function getNotionSync(content: ContentItem): { label: string; tone: "neutral" |
   }
 }
 
+function formatSyncSummary(summary: NotionSyncSummary): string {
+  const parts = [
+    summary.recovered ? `${summary.recovered} page${summary.recovered > 1 ? "s" : ""} manquante${summary.recovered > 1 ? "s" : ""} sur Notion détectée${summary.recovered > 1 ? "s" : ""} et recréée${summary.recovered > 1 ? "s" : ""}` : null,
+    summary.created ? `${summary.created} créé${summary.created > 1 ? "s" : ""}` : null,
+    summary.updated ? `${summary.updated} mis à jour` : null,
+    summary.errors ? `${summary.errors} en erreur` : null,
+  ].filter(Boolean);
+
+  return parts.length ? parts.join(", ") : "Rien à synchroniser, tout est déjà à jour et bien présent sur Notion.";
+}
+
 export default function ContenusPage() {
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [agencyId, setAgencyId] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<{ text: string; isError: boolean } | null>(null);
+
+  async function loadContents(currentAgencyId: string) {
+    setContents(await getAgencyContent(currentAgencyId));
+  }
 
   useEffect(() => {
-    async function loadContents() {
+    async function init() {
       try {
         setIsLoading(true);
         setError(null);
         const currentAgency = await getCurrentAgency();
-        setContents(await getAgencyContent(currentAgency.agency.id));
+        setAgencyId(currentAgency.agency.id);
+        await loadContents(currentAgency.agency.id);
       } catch (caughtError) {
         setError(caughtError instanceof ApiError ? caughtError.message : "Impossible de charger vos contenus.");
       } finally {
         setIsLoading(false);
       }
     }
-    void loadContents();
+    void init();
   }, []);
+
+  async function handleSyncNotion() {
+    if (!agencyId || isSyncing) return;
+
+    setIsSyncing(true);
+    setSyncMessage(null);
+
+    try {
+      const summary = await syncScheduledContentToNotion(agencyId);
+      setSyncMessage({ text: formatSyncSummary(summary), isError: summary.errors > 0 });
+      await loadContents(agencyId);
+    } catch (caughtError) {
+      setSyncMessage({
+        text: caughtError instanceof ApiError ? caughtError.message : "La synchronisation avec Notion a échoué.",
+        isError: true,
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  }
 
   const counts = useMemo(() => ({
     drafts: contents.filter((content) => ["DRAFT", "IDEA", "IN_REVIEW"].includes(content.status)).length,
@@ -68,7 +114,20 @@ export default function ContenusPage() {
         eyebrow="Bibliothèque éditoriale"
         title="Vos contenus, au même endroit"
         description="Suivez chaque rédaction depuis le brief jusqu’à sa publication."
-        actions={<Link href="/redaction" className="inline-flex min-h-10 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700">Nouvelle rédaction <span className="ml-2">→</span></Link>}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void handleSyncNotion()}
+              disabled={!agencyId || isSyncing}
+              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              title="Vérifie que chaque contenu planifié/publié est bien présent sur Notion et corrige les pages manquantes"
+            >
+              {isSyncing ? "Synchronisation..." : "Resynchroniser avec Notion"}
+            </button>
+            <Link href="/redaction" className="inline-flex min-h-10 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700">Nouvelle rédaction <span className="ml-2">→</span></Link>
+          </div>
+        }
       >
         <div className="grid gap-3 sm:grid-cols-3">
           {[
@@ -86,6 +145,12 @@ export default function ContenusPage() {
       </PageHeader>
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-8">
+        {syncMessage ? (
+          <Card className={`mb-4 p-4 text-sm font-semibold ${syncMessage.isError ? "border-rose-200 bg-rose-50 text-rose-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
+            {syncMessage.text}
+          </Card>
+        ) : null}
+
         {isLoading ? (
           <div className="grid gap-3">
             {[1, 2, 3].map((item) => <div key={item} className="h-24 animate-pulse rounded-2xl bg-slate-200/60" />)}
