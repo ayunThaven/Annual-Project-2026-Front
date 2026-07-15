@@ -687,3 +687,31 @@ export function removeCurationItem(agencyId: string, id: string) {
 export function getAgencyContent(agencyId: string) {
   return apiRequest<ContentItem[]>(`/agencies/${agencyId}/content`);
 }
+
+export type NotionConnection = {
+  connected: boolean;
+  workspaceName?: string | null;
+  workspaceIcon?: string | null;
+  connectedAt?: string | null;
+};
+
+export function getNotionConnection(agencyId: string) {
+  return apiRequest<NotionConnection>(
+    `/agencies/${agencyId}/notion/oauth/connection`,
+  );
+}
+
+export function getNotionAuthorizeUrl(agencyId: string) {
+  return apiRequest<{ url: string }>(
+    `/agencies/${agencyId}/notion/oauth/authorize-url`,
+  );
+}
+
+export function disconnectNotion(agencyId: string) {
+  return apiRequest<{ success: true }>(
+    `/agencies/${agencyId}/notion/oauth`,
+    {
+      method: 'DELETE',
+    },
+  );
+}

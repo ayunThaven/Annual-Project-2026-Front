@@ -10,12 +10,16 @@ import {
   ApiError,
   CurrentAgency,
   createAgency,
+  disconnectNotion,
   getAgencyAiSettings,
   getCurrentAgency,
   getIdeaGenerationSettings,
+  getNotionAuthorizeUrl,
+  getNotionConnection,
   IdeaGenerationCadence,
   IdeaGenerationSettings,
   listAgencyAiModels,
+  NotionConnection,
   updateAgency,
   updateAgencyAiSettings,
   updateIdeaGenerationSettings,
@@ -96,6 +100,15 @@ export default function ParametresPage() {
   const [aiSettingsError, setAiSettingsError] = useState<string | null>(null);
   const [aiSettingsSuccess, setAiSettingsSuccess] = useState<string | null>(null);
   const [aiModelsError, setAiModelsError] = useState<string | null>(null);
+  const [notionConnection, setNotionConnection] =
+    useState<NotionConnection | null>(null);
+  const [isLoadingNotion, setIsLoadingNotion] = useState(false);
+  const [isConnectingNotion, setIsConnectingNotion] = useState(false);
+  const [isDisconnectingNotion, setIsDisconnectingNotion] = useState(false);
+  const [notionError, setNotionError] = useState<string | null>(null);
+  const [notionBanner, setNotionBanner] = useState<'connected' | 'error' | null>(
+    null,
+  );
 
   const canEditAgency = !agency || currentAgency?.role === 'OWNER';
   const needsAuthentication =
@@ -198,6 +211,70 @@ export default function ParametresPage() {
     }
   }
 
+  async function loadNotionConnection(agencyId: string) {
+    setIsLoadingNotion(true);
+    setNotionError(null);
+
+    try {
+      const connection = await getNotionConnection(agencyId);
+      setNotionConnection(connection);
+    } catch (caughtError) {
+      setNotionConnection(null);
+      setNotionError(getErrorMessage(caughtError));
+    } finally {
+      setIsLoadingNotion(false);
+    }
+  }
+
+  async function handleConnectNotion() {
+    if (!currentAgency) return;
+
+    setIsConnectingNotion(true);
+    setNotionError(null);
+
+    try {
+      const { url } = await getNotionAuthorizeUrl(currentAgency.agency.id);
+      window.location.href = url;
+    } catch (caughtError) {
+      setNotionError(getErrorMessage(caughtError));
+      setIsConnectingNotion(false);
+    }
+  }
+
+  async function handleDisconnectNotion() {
+    if (!currentAgency) return;
+
+    setIsDisconnectingNotion(true);
+    setNotionError(null);
+
+    try {
+      await disconnectNotion(currentAgency.agency.id);
+      await loadNotionConnection(currentAgency.agency.id);
+      setNotionBanner(null);
+    } catch (caughtError) {
+      setNotionError(getErrorMessage(caughtError));
+    } finally {
+      setIsDisconnectingNotion(false);
+    }
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const notionStatus = params.get('notion');
+
+    if (notionStatus === 'connected' || notionStatus === 'error') {
+      setNotionBanner(notionStatus);
+      // Nettoie le parametre de l'URL sans recharger la page.
+      params.delete('notion');
+      const query = params.toString();
+      window.history.replaceState(
+        null,
+        '',
+        `${window.location.pathname}${query ? `?${query}` : ''}`,
+      );
+    }
+  }, []);
+
   useEffect(() => {
     async function loadAgency() {
       setIsLoadingAgency(true);
@@ -213,6 +290,7 @@ export default function ParametresPage() {
         await Promise.all([
           loadIdeaSettings(current.agency.id),
           loadAiSettings(current.agency.id),
+          loadNotionConnection(current.agency.id),
         ]);
       } catch (caughtError) {
         if (caughtError instanceof ApiError && caughtError.status === 404) {
@@ -279,6 +357,7 @@ export default function ParametresPage() {
         await Promise.all([
           loadIdeaSettings(createdAgency.agency.id),
           loadAiSettings(createdAgency.agency.id),
+          loadNotionConnection(createdAgency.agency.id),
         ]);
       }
     } catch (caughtError) {
@@ -500,6 +579,96 @@ export default function ParametresPage() {
             </button>
           </div>
         </form>
+
+        {agency ? (
+          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4">
+            <div className="border-b border-gray-100 pb-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 bg-black text-white font-black text-xl rounded-lg flex items-center justify-center">
+                    N
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-gray-900">Notion</h2>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Connectez votre espace Notion pour synchroniser vos contenus.
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={`text-xs font-semibold whitespace-nowrap ${
+                    notionConnection?.connected
+                      ? 'text-green-700'
+                      : 'text-gray-400'
+                  }`}
+                >
+                  {isLoadingNotion
+                    ? '...'
+                    : notionConnection?.connected
+                      ? 'Connecte'
+                      : 'Non connecte'}
+                </span>
+              </div>
+            </div>
+
+            {notionBanner === 'connected' ? (
+              <div className="bg-green-50 border border-green-100 rounded-lg p-3 text-sm font-medium text-green-700">
+                Notion a bien ete connecte a votre agence.
+              </div>
+            ) : null}
+
+            {notionBanner === 'error' ? (
+              <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-sm font-medium text-red-600">
+                La connexion Notion a echoue. Veuillez reessayer.
+              </div>
+            ) : null}
+
+            {notionError ? (
+              <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-sm font-medium text-red-600">
+                {notionError}
+              </div>
+            ) : null}
+
+            {!canEditAgency ? (
+              <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-sm font-medium text-amber-700">
+                Seul un administrateur peut connecter Notion.
+              </div>
+            ) : null}
+
+            {notionConnection?.connected ? (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-sm text-gray-700">
+                  Espace connecte :{' '}
+                  <span className="font-semibold text-gray-900">
+                    {notionConnection.workspaceName || 'Workspace Notion'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDisconnectNotion}
+                  disabled={isDisconnectingNotion || !canEditAgency}
+                  className="bg-white hover:bg-gray-50 disabled:opacity-50 text-red-600 border border-gray-200 font-semibold py-2 px-4 rounded-lg text-xs transition-colors"
+                >
+                  {isDisconnectingNotion ? 'Deconnexion...' : 'Deconnecter'}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-gray-500">
+                  Vous serez redirige vers Notion pour autoriser l&apos;acces.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleConnectNotion}
+                  disabled={isConnectingNotion || isLoadingNotion || !canEditAgency}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-2 px-4 rounded-lg text-xs transition-colors"
+                >
+                  {isConnectingNotion ? 'Redirection...' : 'Connecter Notion'}
+                </button>
+              </div>
+            )}
+          </div>
+        ) : null}
 
         {agency ? (
           <form

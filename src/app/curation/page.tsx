@@ -87,7 +87,6 @@ export default function CurationPage() {
   const [isCreatingItem, setIsCreatingItem] = useState(false);
 
   const [selectedArticle, setSelectedArticle] = useState<CurationItem | null>(null);
-  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   const [isInspireModalOpen, setIsInspireModalOpen] = useState(false);
   const [contentType, setContentType] = useState<ContentType>("Article de blog");
@@ -587,8 +586,9 @@ export default function CurationPage() {
 
                     <button
                       onClick={() => {
-                        setSelectedArticle(article);
-                        setIsPreviewModalOpen(true);
+                        if (article.sourceUrl) {
+                          window.open(article.sourceUrl, "_blank", "noopener,noreferrer");
+                        }
                       }}
                       className="w-10 h-10 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors shrink-0"
                     >
@@ -765,64 +765,6 @@ export default function CurationPage() {
             </button>
           </div>
         </form>
-      </Modal>
-
-      <Modal
-        isOpen={isPreviewModalOpen}
-        onClose={() => setIsPreviewModalOpen(false)}
-        title={selectedArticle?.title || "Aperçu de l'article"}
-        description="Prévisualisez l'article avant de l'utiliser comme source."
-      >
-        {selectedArticle && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <span className="font-semibold text-gray-900">
-                {selectedArticle.source || "Import manuel"}
-              </span>
-              <span>{formatDate(selectedArticle.createdAt)}</span>
-            </div>
-
-            <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-              <p className="text-sm leading-relaxed text-gray-700">
-                {selectedArticle.notes ||
-                  "Aucune note enregistrée pour cet article."}
-              </p>
-
-              {selectedArticle.topics && selectedArticle.topics.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {selectedArticle.topics.map((topic) => (
-                    <span
-                      key={topic}
-                      className="rounded-full bg-white border border-gray-200 px-2.5 py-1 text-xs text-gray-600"
-                    >
-                      {topic}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
-              <button
-                onClick={() => setIsPreviewModalOpen(false)}
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                Fermer
-              </button>
-
-              {selectedArticle.sourceUrl && (
-                <a
-                  href={selectedArticle.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
-                >
-                  Voir le site
-                </a>
-              )}
-            </div>
-          </div>
-        )}
       </Modal>
 
       <Modal
