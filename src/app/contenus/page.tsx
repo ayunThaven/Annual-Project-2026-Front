@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import Image from 'next/image';
 import Link from 'next/link';
@@ -7,77 +7,67 @@ import MarkdownContent from '@/components/MarkdownContent';
 import Modal from '@/components/Modal';
 import {
   ApiError,
-  ContentItem,
-  CurrentAgency,
+  getAgencyContent,
   getCurrentAgency,
-  listContentItems,
-} from '@/lib/api';
+  type ContentItem,
+} from "@/lib/api";
 
-const statusLabels = {
-  IDEA: 'Idee',
-  DRAFT: 'Brouillon',
-  IN_REVIEW: 'En revue',
-  SCHEDULED: 'Planifie',
-  PUBLISHED: 'Publie',
-};
+function formatDate(date?: string | null) {
+  if (!date) return "Date inconnue";
 
-const syncLabels = {
-  PENDING: 'A synchroniser',
-  SYNCED: 'Synchronise',
-  CONFLICT: 'Conflit',
-  ERROR: 'Erreur sync',
-};
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof ApiError) {
-    if (error.status === 401) return 'Vous devez etre connecte.';
-    if (error.status === 404) return 'Aucune agence active.';
-
-    return error.message;
-  }
-
-  return 'Une erreur est survenue pendant le chargement des contenus.';
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(date));
 }
 
-function formatDate(value?: string | null) {
-  if (!value) return 'Aucune date';
-
-  return new Intl.DateTimeFormat('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(value));
+function getStatusLabel(status?: string) {
+  switch (status) {
+    case "DRAFT":
+      return "Brouillon";
+    case "PUBLISHED":
+      return "Publié";
+    case "SCHEDULED":
+      return "Planifié";
+    case "IN_REVIEW":
+      return "En relecture";
+    case "IDEA":
+      return "Idée";
+    default:
+      return status ?? "Inconnu";
+  }
 }
 
 export default function ContenusPage() {
-  const [currentAgency, setCurrentAgency] = useState<CurrentAgency | null>(null);
-  const [contents, setContents] = useState<ContentItem[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<ContentItem | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [contents, setContents] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadContents() {
-      setIsLoading(true);
-      setError(null);
-
       try {
-        const agency = await getCurrentAgency();
-        const loadedContents = await listContentItems(agency.agency.id);
+        setIsLoading(true);
+        setError(null);
 
-        setCurrentAgency(agency);
-        setContents(loadedContents);
-      } catch (caughtError) {
-        setCurrentAgency(null);
-        setContents([]);
-        setError(getErrorMessage(caughtError));
+        const currentAgency = await getCurrentAgency();
+        const items = await getAgencyContent(currentAgency.agency.id);
+
+        setContents(items);
+      } catch (err) {
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : "Impossible de charger vos contenus.",
+        );
       } finally {
         setIsLoading(false);
       }
     }
 
-    void loadContents();
+    loadContents();
   }, []);
 
   return (
@@ -85,61 +75,32 @@ export default function ContenusPage() {
       <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-4 sm:px-8">
         <h1 className="text-2xl font-bold text-gray-900">Mes contenus</h1>
         <p className="text-gray-500 text-xs mt-0.5">
-          Historique editorial de l&apos;agence et sujets acceptes depuis les idees
+          Accédez à l&apos;historique de toutes vos rédactions et vérifiez leur état
+          de publication
         </p>
       </div>
 
-      <div className="mx-auto max-w-7xl space-y-4 px-4 py-6 sm:px-8 sm:py-8">
-        {isLoading ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 text-sm text-gray-500">
-            Chargement des contenus...
-          </div>
-        ) : null}
+      <div className="max-w-7xl mx-auto px-8 py-8 space-y-4">
+        {isLoading && (
+          <p className="text-sm text-gray-500">Chargement des contenus...</p>
+        )}
 
-        {!isLoading && error ? (
-          <div className="bg-red-50 border border-red-100 rounded-lg p-4 text-sm font-medium text-red-600">
-            <p>{error}</p>
-            {error === 'Aucune agence active.' ? (
-              <Link
-                href="/parametres"
-                className="inline-flex mt-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded-lg text-xs"
-              >
-                Configurer une agence
-              </Link>
-            ) : null}
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+            {error}
           </div>
-        ) : null}
+        )}
 
-        {!isLoading && currentAgency && contents.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-            <Image
-              src="/icons/contenus.png"
-              alt=""
-              width={34}
-              height={34}
-              className="mx-auto opacity-70"
-            />
-            <h2 className="mt-3 text-base font-bold text-gray-900">
-              Aucun contenu pour le moment
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Acceptez une idee pour l&apos;ajouter au calendrier editorial.
-            </p>
-            <Link
-              href="/idees?generate=1"
-              className="mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700"
-            >
-              Générer des idées
-            </Link>
-          </div>
-        ) : null}
+        {!isLoading && !error && contents.length === 0 && (
+          <p className="text-sm text-gray-500">Aucun contenu pour le moment.</p>
+        )}
 
         {contents.map((doc) => (
           <div
             key={doc.id}
-            className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+            className="bg-white border border-gray-200 rounded-xl p-5 flex items-center justify-between hover:shadow-md transition-shadow"
           >
-            <div className="flex items-center gap-4 min-w-0">
+            <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 shrink-0">
                 <Image
                   src="/icons/contenus.png"
@@ -150,27 +111,26 @@ export default function ContenusPage() {
                 />
               </div>
 
-              <div className="min-w-0">
-                <h3 className="font-bold text-gray-900 text-sm leading-snug truncate">
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm leading-snug">
                   {doc.title}
                 </h3>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400 mt-1">
+                <div className="flex items-center gap-3 text-xs text-gray-400 mt-1">
                   <span className="font-semibold text-blue-600">
-                    {doc.contentType || 'Contenu'}
+                    {doc.contentType ?? doc.channel ?? "Contenu"}
                   </span>
-                  <span>{statusLabels[doc.status]}</span>
-                  <span>Cree le {formatDate(doc.createdAt)}</span>
+                  <span>•</span>
+                  <span>{formatDate(doc.createdAt)}</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:shrink-0">
+            <div className="flex items-center gap-4">
               <span className="text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-100 px-3 py-1 rounded-full">
-                {doc.syncStatus ? syncLabels[doc.syncStatus] : 'Local'}
+                {getStatusLabel(doc.status)}
               </span>
 
               <button
-                type="button"
                 onClick={() => {
                   setSelectedDoc(doc);
                   setIsPreviewOpen(true);
@@ -178,7 +138,12 @@ export default function ContenusPage() {
                 aria-label={`Prévisualiser ${doc.title}`}
                 className="rounded-lg border border-gray-200 p-2 hover:bg-gray-100"
               >
-                <Image src="/icons/voir.png" alt="Voir" width={16} height={16} />
+                <Image
+                  src="/icons/voir.png"
+                  alt="Voir"
+                  width={16}
+                  height={16}
+                />
               </button>
               <Link
                 href={`/redaction?contentId=${doc.id}`}
@@ -194,10 +159,10 @@ export default function ContenusPage() {
       <Modal
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
-        title={selectedDoc?.title || 'Apercu du contenu'}
-        description="Details du contenu editorial."
+        title={selectedDoc?.title || "Aperçu du contenu"}
+        description="Prévisualisez le contenu généré et son état de synchronisation."
       >
-        {selectedDoc ? (
+        {selectedDoc && (
           <div className="space-y-4">
             <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
               <div className="flex items-center justify-between gap-4">
@@ -206,74 +171,47 @@ export default function ContenusPage() {
                     Type
                   </p>
                   <p className="mt-1 text-sm font-bold text-gray-900">
-                    {selectedDoc.contentType || 'Contenu'}
+                    {selectedDoc.contentType ?? selectedDoc.channel ?? "Contenu"}
                   </p>
                 </div>
 
                 <span className="rounded-full border border-gray-100 bg-white px-3 py-1 text-xs font-semibold text-gray-600">
-                  {statusLabels[selectedDoc.status]}
+                  {getStatusLabel(selectedDoc.status)}
                 </span>
               </div>
 
               <p className="mt-4 text-xs font-semibold uppercase text-gray-500">
-                Date de publication
+                Date
               </p>
               <p className="mt-1 text-sm text-gray-700">
-                {formatDate(selectedDoc.publicationDate)}
+                {formatDate(selectedDoc.createdAt)}
               </p>
 
-              {selectedDoc.tags?.length ? (
-                <>
-                  <p className="mt-4 text-xs font-semibold uppercase text-gray-500">
-                    Mots-cles
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {selectedDoc.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </>
-              ) : null}
-
-              {selectedDoc.notes ? (
-                <>
-                  <p className="mt-4 text-xs font-semibold uppercase text-gray-500">
-                    Notes
-                  </p>
-                  <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-gray-700">
-                    {selectedDoc.notes}
-                  </p>
-                </>
-              ) : null}
-
-              {selectedDoc.body ? (
-                <>
-                  <p className="mt-4 text-xs font-semibold uppercase text-gray-500">
-                    Contenu
-                  </p>
-                  <MarkdownContent className="mt-1 text-gray-700">
-                    {selectedDoc.body}
-                  </MarkdownContent>
-                </>
-              ) : null}
+              <p className="mt-4 text-xs font-semibold uppercase text-gray-500">
+                Contenu
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+                {selectedDoc.body ?? selectedDoc.notes ?? "Aucun contenu disponible."}
+              </p>
             </div>
 
             <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
               <button
-                type="button"
                 onClick={() => setIsPreviewOpen(false)}
                 className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
               >
                 Fermer
               </button>
+
+              <button
+                onClick={() => setIsPreviewOpen(false)}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+              >
+                Modifier
+              </button>
             </div>
           </div>
-        ) : null}
+        )}
       </Modal>
     </div>
   );
