@@ -8,6 +8,7 @@ import MarkdownContent from "@/components/MarkdownContent";
 import {
   ApiError,
   ContentItem,
+  ContentStatus,
   CurrentAgency,
   generateContent,
   getContentItem,
@@ -49,6 +50,13 @@ const lengthOptions: Array<{
   { id: "long", label: "Long", maxTokens: 2200 },
 ];
 
+const contentStatusOptions: Array<{ id: ContentStatus; label: string }> = [
+  { id: "DRAFT", label: "Brouillon" },
+  { id: "IN_REVIEW", label: "En relecture" },
+  { id: "SCHEDULED", label: "Planifié" },
+  { id: "PUBLISHED", label: "Publié" },
+];
+
 function formatTime() {
   return new Intl.DateTimeFormat("fr-FR", {
     hour: "2-digit",
@@ -84,6 +92,10 @@ export default function RedactionPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentAgency, setCurrentAgency] = useState<CurrentAgency | null>(null);
   const [activeContent, setActiveContent] = useState<ContentItem | null>(null);
+  const [publicationDate, setPublicationDate] = useState("");
+  const [isPlanningOpen, setIsPlanningOpen] = useState(false);
+  const [isUpdatingWorkflow, setIsUpdatingWorkflow] = useState(false);
+  const [workflowNotice, setWorkflowNotice] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 1,
@@ -119,6 +131,8 @@ export default function RedactionPage() {
         if (ignoreResult) return;
 
         setActiveContent(content);
+        setPublicationDate(content.publicationDate?.slice(0, 10) ?? "");
+        setIsPlanningOpen(false);
 
         const matchingType = contentTypeOptions.find(
           (option) => option.label.toLowerCase() === content.contentType?.toLowerCase(),
@@ -206,6 +220,7 @@ export default function RedactionPage() {
 
       if (savedContent) {
         setActiveContent(savedContent);
+        setPublicationDate(savedContent.publicationDate?.slice(0, 10) ?? "");
         if (!activeContent) {
           router.replace(`/redaction?contentId=${savedContent.id}`);
         }
@@ -238,6 +253,46 @@ export default function RedactionPage() {
     }
   }
 
+  async function updateWorkflow(status: ContentStatus) {
+    if (!activeContent || isUpdatingWorkflow) return;
+
+    if (status === "SCHEDULED" && !publicationDate) {
+      setError("Choisissez une date avant de planifier ce contenu.");
+      return;
+    }
+
+    setError(null);
+    setWorkflowNotice(null);
+    setIsUpdatingWorkflow(true);
+
+    try {
+      const agency = currentAgency ?? (await getCurrentAgency());
+      const updatedContent = await updateContentItem(agency.agency.id, activeContent.id, {
+        status,
+        publicationDate:
+          status === "SCHEDULED"
+            ? new Date(`${publicationDate}T12:00:00`).toISOString()
+            : activeContent.publicationDate ?? null,
+      });
+      setActiveContent(updatedContent);
+      setPublicationDate(updatedContent.publicationDate?.slice(0, 10) ?? "");
+      if (status === "SCHEDULED") setIsPlanningOpen(false);
+      setWorkflowNotice(
+        status === "IN_REVIEW"
+          ? "Contenu envoyé en relecture."
+          : status === "SCHEDULED"
+            ? "Publication planifiée."
+            : status === "PUBLISHED"
+              ? "Contenu marqué comme publié."
+              : "Contenu remis en brouillon.",
+      );
+    } catch (caughtError) {
+      setError(getErrorMessage(caughtError));
+    } finally {
+      setIsUpdatingWorkflow(false);
+    }
+  }
+
   return (
     <div className="relative flex h-full min-h-[calc(100dvh-4rem)] w-full overflow-hidden bg-white text-gray-800 md:min-h-0">
       <div className="flex-1 flex flex-col bg-white h-full transition-all duration-300">
@@ -262,12 +317,17 @@ export default function RedactionPage() {
 
           <div className="flex items-center gap-2">
             {activeContent ? (
-              <Link
-                href="/contenus"
-                className="hidden rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 sm:inline-flex"
-              >
-                Voir mes contenus
-              </Link>
+              <>
+                <span className="hidden rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600 sm:inline-flex">
+                  {contentStatusOptions.find((option) => option.id === activeContent.status)?.label ?? activeContent.status}
+                </span>
+                <Link
+                  href="/contenus"
+                  className="hidden rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 sm:inline-flex"
+                >
+                  Voir mes contenus
+                </Link>
+              </>
             ) : null}
             <button
               type="button"
@@ -305,7 +365,13 @@ export default function RedactionPage() {
           </div>
         ) : null}
 
-        <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 lg:px-16 lg:py-8 space-y-6">
+        {workflowNotice ? (
+          <div className="mx-4 mt-4 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm font-medium text-emerald-700 sm:mx-8">
+            {workflowNotice}
+          </div>
+        ) : null}
+
+        <div className="flex-1 overflow-y-auto space-y-6 px-4 py-6 sm:px-8 lg:px-16 lg:py-8">
           {isLoadingContent ? (
             <div className="text-sm text-gray-500">Chargement du brief…</div>
           ) : null}
@@ -350,6 +416,43 @@ export default function RedactionPage() {
             <div className="text-sm text-gray-500">Gemini rédige...</div>
           ) : null}
         </div>
+
+        {activeContent ? (
+          <div className="border-t border-slate-200/80 bg-slate-50/90 px-4 py-3 backdrop-blur sm:px-8">
+            <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-2.5">
+              <span className="mr-1 text-xs font-bold uppercase tracking-wide text-slate-500">Finaliser</span>
+              {isPlanningOpen ? (
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                  Date
+                  <input
+                    type="date"
+                    value={publicationDate}
+                    onChange={(event) => setPublicationDate(event.target.value)}
+                    disabled={isUpdatingWorkflow}
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-700 outline-none focus:border-indigo-400"
+                  />
+                </label>
+              ) : null}
+              {isPlanningOpen ? (
+                <>
+                  <button type="button" onClick={() => void updateWorkflow("SCHEDULED")} disabled={isUpdatingWorkflow} className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50">Confirmer la planification</button>
+                  <button type="button" onClick={() => { setPublicationDate(activeContent.publicationDate?.slice(0, 10) ?? ""); setIsPlanningOpen(false); }} disabled={isUpdatingWorkflow} className="rounded-xl px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 disabled:opacity-50">Annuler</button>
+                </>
+              ) : activeContent.status !== "PUBLISHED" ? (
+                <button type="button" onClick={() => { setPublicationDate(activeContent.publicationDate?.slice(0, 10) ?? ""); setError(null); setWorkflowNotice(null); setIsPlanningOpen(true); }} disabled={isUpdatingWorkflow} className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50">{activeContent.status === "SCHEDULED" ? "Modifier la planification" : "Planifier"}</button>
+              ) : null}
+              {activeContent.status !== "IN_REVIEW" && activeContent.status !== "PUBLISHED" ? (
+                <button type="button" onClick={() => void updateWorkflow("IN_REVIEW")} disabled={isUpdatingWorkflow} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-50">Envoyer en relecture</button>
+              ) : null}
+              {activeContent.status !== "PUBLISHED" ? (
+                <button type="button" onClick={() => void updateWorkflow("PUBLISHED")} disabled={isUpdatingWorkflow} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50">Marquer comme publié</button>
+              ) : null}
+              {activeContent.status !== "DRAFT" ? (
+                <button type="button" onClick={() => void updateWorkflow("DRAFT")} disabled={isUpdatingWorkflow} className="ml-auto rounded-xl px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 disabled:opacity-50">Repasser en brouillon</button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
         <div className="border-t border-gray-100 bg-white p-4 sm:p-6">
           <form
