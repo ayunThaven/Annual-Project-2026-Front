@@ -281,7 +281,7 @@ export default function RedactionPage() {
         status === "IN_REVIEW"
           ? "Contenu envoyé en relecture."
           : status === "SCHEDULED"
-            ? "Publication planifiée."
+            ? "Publication planifiée. Synchronisation avec le calendrier Notion en cours..."
             : status === "PUBLISHED"
               ? "Contenu marqué comme publié."
               : "Contenu remis en brouillon.",
@@ -321,6 +321,16 @@ export default function RedactionPage() {
                 <span className="hidden rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600 sm:inline-flex">
                   {contentStatusOptions.find((option) => option.id === activeContent.status)?.label ?? activeContent.status}
                 </span>
+                {activeContent.notionPageId ? (
+                  <a
+                    href={`https://notion.so/${activeContent.notionPageId.replace(/-/g, "")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hidden rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white sm:inline-flex"
+                  >
+                    Voir sur Notion
+                  </a>
+                ) : null}
                 <Link
                   href="/contenus"
                   className="hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 sm:inline-flex"

@@ -132,6 +132,7 @@ export type ContentItem = {
   notes?: string | null;
   body?: string | null;
   syncStatus?: SyncStatus;
+  notionPageId?: string | null;
   createdAt: string;
   updatedAt: string;
 };

@@ -24,6 +24,17 @@ function getStatus(status?: string): { label: string; tone: "neutral" | "indigo"
   }
 }
 
+function getNotionSync(content: ContentItem): { label: string; tone: "neutral" | "indigo" | "success" | "warning" | "danger" } | null {
+  if (content.status !== "SCHEDULED" && content.status !== "PUBLISHED") return null;
+
+  switch (content.syncStatus) {
+    case "SYNCED": return { label: "Sur Notion", tone: "success" };
+    case "ERROR": return { label: "Erreur de synchro Notion", tone: "danger" };
+    case "CONFLICT": return { label: "Conflit Notion", tone: "warning" };
+    default: return { label: "Synchro Notion en cours", tone: "neutral" };
+  }
+}
+
 export default function ContenusPage() {
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -96,6 +107,7 @@ export default function ContenusPage() {
           <div className="grid gap-3">
             {contents.map((doc) => {
               const status = getStatus(doc.status);
+              const notionSync = getNotionSync(doc);
               return (
                 <Card key={doc.id} className="group p-4 transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md sm:p-5">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -104,6 +116,20 @@ export default function ContenusPage() {
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge tone={status.tone}>{status.label}</Badge>
+                          {notionSync ? (
+                            doc.notionPageId ? (
+                              <a
+                                href={`https://notion.so/${doc.notionPageId.replace(/-/g, "")}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(event) => event.stopPropagation()}
+                              >
+                                <Badge tone={notionSync.tone}>{notionSync.label}</Badge>
+                              </a>
+                            ) : (
+                              <Badge tone={notionSync.tone}>{notionSync.label}</Badge>
+                            )
+                          ) : null}
                           <span className="text-xs font-semibold text-indigo-600">{doc.contentType ?? doc.channel ?? "Contenu"}</span>
                         </div>
                         <h2 className="mt-2 truncate text-sm font-bold text-slate-950 sm:text-base">{doc.title}</h2>
