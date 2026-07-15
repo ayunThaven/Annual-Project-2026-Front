@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import MarkdownContent from '@/components/MarkdownContent';
 import Modal from '@/components/Modal';
 import {
   acceptContentIdea,
@@ -367,7 +368,9 @@ export default function IdeesPage() {
                 </div>
 
                 {idea.rationale ? (
-                  <p className="text-gray-600 leading-relaxed">{idea.rationale}</p>
+                  <MarkdownContent className="text-gray-600">
+                    {idea.rationale}
+                  </MarkdownContent>
                 ) : null}
 
                 {idea.keywords?.length ? (

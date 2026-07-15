@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import MarkdownContent from '@/components/MarkdownContent';
 import Modal from '@/components/Modal';
 import {
   ApiError,
@@ -247,6 +248,17 @@ export default function ContenusPage() {
                   <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-gray-700">
                     {selectedDoc.notes}
                   </p>
+                </>
+              ) : null}
+
+              {selectedDoc.body ? (
+                <>
+                  <p className="mt-4 text-xs font-semibold uppercase text-gray-500">
+                    Contenu
+                  </p>
+                  <MarkdownContent className="mt-1 text-gray-700">
+                    {selectedDoc.body}
+                  </MarkdownContent>
                 </>
               ) : null}
             </div>

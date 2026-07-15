@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { FormEvent, useEffect, useState } from "react";
+import MarkdownContent from "@/components/MarkdownContent";
 import Modal from "@/components/Modal";
 import {
   ApiError,
@@ -890,9 +891,9 @@ export default function CurationPage() {
                 <p className="mb-2 text-xs font-semibold text-green-700">
                   Contenu généré et enregistré en brouillon
                 </p>
-                <p className="text-sm leading-relaxed text-gray-700 whitespace-pre-wrap">
+                <MarkdownContent className="text-gray-700">
                   {generatedContent}
-                </p>
+                </MarkdownContent>
               </div>
             )}
 
