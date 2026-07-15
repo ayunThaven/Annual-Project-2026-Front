@@ -878,39 +878,7 @@ export default function ParametresPage() {
             aria-labelledby="settings-tab-ia"
             className="space-y-8"
           >
-        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4">
-          <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2">
-            Contexte Editorial Global
-          </h2>
-          <p className="text-gray-500 text-xs">
-            Definissez des regles que l&apos;IA appliquera secretement a toutes vos
-            redactions pour eviter le contenu creux.
-          </p>
-
-          <div className="space-y-4 pt-2">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Mots-cles interdits ou a eviter
-              </label>
-              <input
-                type="text"
-                placeholder="Ex: revolutionnaire, disruptive, game-changer..."
-                className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400 placeholder-gray-400"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                Description de la cible editoriale principale
-              </label>
-              <textarea
-                rows={3}
-                placeholder="Ex: Directeurs marketing en agence, consultants SEO independants recherchant de la valeur concrete..."
-                className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:border-gray-400 placeholder-gray-400 resize-none"
-              />
-            </div>
-          </div>
-        </div>
-
+            
           <form
             onSubmit={handleAiSettingsSubmit}
             className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-4"
