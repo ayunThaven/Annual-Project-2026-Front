@@ -1,41 +1,28 @@
 "use client";
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import MarkdownContent from '@/components/MarkdownContent';
-import Modal from '@/components/Modal';
-import {
-  ApiError,
-  getAgencyContent,
-  getCurrentAgency,
-  type ContentItem,
-} from "@/lib/api";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import MarkdownContent from "@/components/MarkdownContent";
+import Modal from "@/components/Modal";
+import Badge from "@/components/ui/Badge";
+import Card from "@/components/ui/Card";
+import EmptyState from "@/components/ui/EmptyState";
+import PageHeader from "@/components/ui/PageHeader";
+import { ApiError, getAgencyContent, getCurrentAgency, type ContentItem } from "@/lib/api";
 
 function formatDate(date?: string | null) {
-  if (!date) return "Date inconnue";
-
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(date));
+  if (!date) return "Date à définir";
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(date));
 }
 
-function getStatusLabel(status?: string) {
+function getStatus(status?: string): { label: string; tone: "neutral" | "indigo" | "success" | "warning" } {
   switch (status) {
-    case "DRAFT":
-      return "Brouillon";
-    case "PUBLISHED":
-      return "Publié";
-    case "SCHEDULED":
-      return "Planifié";
-    case "IN_REVIEW":
-      return "En relecture";
-    case "IDEA":
-      return "Idée";
-    default:
-      return status ?? "Inconnu";
+    case "DRAFT": return { label: "Brouillon", tone: "neutral" };
+    case "PUBLISHED": return { label: "Publié", tone: "success" };
+    case "SCHEDULED": return { label: "Planifié", tone: "indigo" };
+    case "IN_REVIEW": return { label: "En relecture", tone: "warning" };
+    case "IDEA": return { label: "À préparer", tone: "neutral" };
+    default: return { label: status ?? "Inconnu", tone: "neutral" };
   }
 }
 
@@ -51,167 +38,111 @@ export default function ContenusPage() {
       try {
         setIsLoading(true);
         setError(null);
-
         const currentAgency = await getCurrentAgency();
-        const items = await getAgencyContent(currentAgency.agency.id);
-
-        setContents(items);
-      } catch (err) {
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : "Impossible de charger vos contenus.",
-        );
+        setContents(await getAgencyContent(currentAgency.agency.id));
+      } catch (caughtError) {
+        setError(caughtError instanceof ApiError ? caughtError.message : "Impossible de charger vos contenus.");
       } finally {
         setIsLoading(false);
       }
     }
-
-    loadContents();
+    void loadContents();
   }, []);
 
+  const counts = useMemo(() => ({
+    drafts: contents.filter((content) => ["DRAFT", "IDEA", "IN_REVIEW"].includes(content.status)).length,
+    scheduled: contents.filter((content) => content.status === "SCHEDULED").length,
+    published: contents.filter((content) => content.status === "PUBLISHED").length,
+  }), [contents]);
+
   return (
-    <div className="w-full">
-      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-4 sm:px-8">
-        <h1 className="text-2xl font-bold text-gray-900">Mes contenus</h1>
-        <p className="text-gray-500 text-xs mt-0.5">
-          Accédez à l&apos;historique de toutes vos rédactions et vérifiez leur état
-          de publication
-        </p>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-8 py-8 space-y-4">
-        {isLoading && (
-          <p className="text-sm text-gray-500">Chargement des contenus...</p>
-        )}
-
-        {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-            {error}
-          </div>
-        )}
-
-        {!isLoading && !error && contents.length === 0 && (
-          <p className="text-sm text-gray-500">Aucun contenu pour le moment.</p>
-        )}
-
-        {contents.map((doc) => (
-          <div
-            key={doc.id}
-            className="bg-white border border-gray-200 rounded-xl p-5 flex items-center justify-between hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 shrink-0">
-                <Image
-                  src="/icons/contenus.png"
-                  alt=""
-                  width={18}
-                  height={18}
-                  className="opacity-70"
-                />
-              </div>
-
-              <div>
-                <h3 className="font-bold text-gray-900 text-sm leading-snug">
-                  {doc.title}
-                </h3>
-                <div className="flex items-center gap-3 text-xs text-gray-400 mt-1">
-                  <span className="font-semibold text-blue-600">
-                    {doc.contentType ?? doc.channel ?? "Contenu"}
-                  </span>
-                  <span>•</span>
-                  <span>{formatDate(doc.createdAt)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <span className="text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-100 px-3 py-1 rounded-full">
-                {getStatusLabel(doc.status)}
-              </span>
-
-              <button
-                onClick={() => {
-                  setSelectedDoc(doc);
-                  setIsPreviewOpen(true);
-                }}
-                aria-label={`Prévisualiser ${doc.title}`}
-                className="rounded-lg border border-gray-200 p-2 hover:bg-gray-100"
-              >
-                <Image
-                  src="/icons/voir.png"
-                  alt="Voir"
-                  width={16}
-                  height={16}
-                />
-              </button>
-              <Link
-                href={`/redaction?contentId=${doc.id}`}
-                className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700"
-              >
-                {doc.status === 'PUBLISHED' ? 'Réutiliser' : 'Continuer'}
-              </Link>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <Modal
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        title={selectedDoc?.title || "Aperçu du contenu"}
-        description="Prévisualisez le contenu généré et son état de synchronisation."
+    <div className="min-h-full">
+      <PageHeader
+        eyebrow="Bibliothèque éditoriale"
+        title="Vos contenus, au même endroit"
+        description="Suivez chaque rédaction depuis le brief jusqu’à sa publication."
+        actions={<Link href="/redaction" className="inline-flex min-h-10 items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-indigo-600/25 transition hover:bg-indigo-700">Nouvelle rédaction <span className="ml-2">→</span></Link>}
       >
-        {selectedDoc && (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase text-gray-500">
-                    Type
-                  </p>
-                  <p className="mt-1 text-sm font-bold text-gray-900">
-                    {selectedDoc.contentType ?? selectedDoc.channel ?? "Contenu"}
-                  </p>
-                </div>
-
-                <span className="rounded-full border border-gray-100 bg-white px-3 py-1 text-xs font-semibold text-gray-600">
-                  {getStatusLabel(selectedDoc.status)}
-                </span>
-              </div>
-
-              <p className="mt-4 text-xs font-semibold uppercase text-gray-500">
-                Date
-              </p>
-              <p className="mt-1 text-sm text-gray-700">
-                {formatDate(selectedDoc.createdAt)}
-              </p>
-
-              <p className="mt-4 text-xs font-semibold uppercase text-gray-500">
-                Contenu
-              </p>
-              <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-                {selectedDoc.body ?? selectedDoc.notes ?? "Aucun contenu disponible."}
-              </p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[
+            { label: "À finaliser", value: counts.drafts, detail: "Idées, brouillons et relectures" },
+            { label: "Planifiés", value: counts.scheduled, detail: "En attente de publication" },
+            { label: "Publiés", value: counts.published, detail: "Contenus finalisés" },
+          ].map((item) => (
+            <div key={item.label} className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+              <p className="text-xl font-extrabold tracking-tight text-slate-950">{item.value}</p>
+              <p className="mt-0.5 text-xs font-bold text-slate-700">{item.label}</p>
+              <p className="mt-1 text-[11px] text-slate-500">{item.detail}</p>
             </div>
+          ))}
+        </div>
+      </PageHeader>
 
-            <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
-              <button
-                onClick={() => setIsPreviewOpen(false)}
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                Fermer
-              </button>
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-8">
+        {isLoading ? (
+          <div className="grid gap-3">
+            {[1, 2, 3].map((item) => <div key={item} className="h-24 animate-pulse rounded-2xl bg-slate-200/60" />)}
+          </div>
+        ) : null}
 
-              <button
-                onClick={() => setIsPreviewOpen(false)}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700"
-              >
-                Modifier
-              </button>
+        {error ? <Card className="border-rose-200 bg-rose-50 p-5 text-sm font-semibold text-rose-700">{error}</Card> : null}
+
+        {!isLoading && !error && contents.length === 0 ? (
+          <EmptyState
+            icon="✦"
+            title="Votre bibliothèque est prête"
+            description="Créez votre première rédaction ou transformez une idée en brief pour l’alimenter."
+            action={<Link href="/idees?generate=1" className="inline-flex rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-indigo-600/25 hover:bg-indigo-700">Générer des idées</Link>}
+          />
+        ) : null}
+
+        {!isLoading && !error && contents.length ? (
+          <div className="grid gap-3">
+            {contents.map((doc) => {
+              const status = getStatus(doc.status);
+              return (
+                <Card key={doc.id} className="group p-4 transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md sm:p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-start gap-3.5">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-lg text-indigo-600">✎</div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge tone={status.tone}>{status.label}</Badge>
+                          <span className="text-xs font-semibold text-indigo-600">{doc.contentType ?? doc.channel ?? "Contenu"}</span>
+                        </div>
+                        <h2 className="mt-2 truncate text-sm font-bold text-slate-950 sm:text-base">{doc.title}</h2>
+                        <p className="mt-1 text-xs text-slate-500">Mis à jour le {formatDate(doc.updatedAt ?? doc.createdAt)}</p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button type="button" onClick={() => { setSelectedDoc(doc); setIsPreviewOpen(true); }} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50">Aperçu</button>
+                      <Link href={`/redaction?contentId=${doc.id}`} className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-950 px-3.5 text-xs font-bold text-white transition hover:bg-slate-800">{doc.status === "PUBLISHED" ? "Réutiliser" : "Continuer"}</Link>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+
+      <Modal isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} title={selectedDoc?.title || "Aperçu du contenu"} description="Relisez le contenu avant de reprendre la rédaction.">
+        {selectedDoc ? (
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={getStatus(selectedDoc.status).tone}>{getStatus(selectedDoc.status).label}</Badge>
+              <span className="text-xs font-bold text-indigo-600">{selectedDoc.contentType ?? selectedDoc.channel ?? "Contenu"}</span>
+              <span className="text-xs text-slate-400">{formatDate(selectedDoc.updatedAt ?? selectedDoc.createdAt)}</span>
+            </div>
+            <div className="max-h-[45dvh] overflow-y-auto rounded-xl border border-slate-100 bg-slate-50 p-4 text-slate-700">
+              <MarkdownContent>{selectedDoc.body ?? selectedDoc.notes ?? "Aucun contenu disponible."}</MarkdownContent>
+            </div>
+            <div className="flex justify-end gap-2 border-t border-slate-100 pt-5">
+              <button type="button" onClick={() => setIsPreviewOpen(false)} className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100">Fermer</button>
+              <Link href={`/redaction?contentId=${selectedDoc.id}`} className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">Ouvrir dans la rédaction</Link>
             </div>
           </div>
-        )}
+        ) : null}
       </Modal>
     </div>
   );
