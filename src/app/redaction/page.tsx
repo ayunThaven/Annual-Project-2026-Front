@@ -322,9 +322,15 @@ export default function RedactionPage() {
                     : "bg-white border-gray-200 text-gray-900"
                 }`}
               >
-                <p className="text-sm leading-relaxed whitespace-pre-line">
-                  {message.text}
-                </p>
+                {message.sender === "ai" ? (
+                  <MarkdownContent className="text-gray-900">
+                    {message.text}
+                  </MarkdownContent>
+                ) : (
+                  <p className="text-sm leading-relaxed whitespace-pre-line">
+                    {message.text}
+                  </p>
+                )}
                 <div
                   className={`text-[10px] mt-3 flex justify-end gap-2 ${
                     message.sender === "user"

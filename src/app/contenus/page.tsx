@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import Modal from "@/components/Modal";
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import MarkdownContent from '@/components/MarkdownContent';
+import Modal from '@/components/Modal';
 import {
   ApiError,
   getAgencyContent,
@@ -70,7 +72,7 @@ export default function ContenusPage() {
 
   return (
     <div className="w-full">
-      <div className="bg-white border-b border-gray-200 px-8 py-4 sticky top-0 z-10">
+      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-4 sm:px-8">
         <h1 className="text-2xl font-bold text-gray-900">Mes contenus</h1>
         <p className="text-gray-500 text-xs mt-0.5">
           Accédez à l&apos;historique de toutes vos rédactions et vérifiez leur état
@@ -133,7 +135,8 @@ export default function ContenusPage() {
                   setSelectedDoc(doc);
                   setIsPreviewOpen(true);
                 }}
-                className="p-2 hover:bg-gray-100 rounded-lg border border-gray-200"
+                aria-label={`Prévisualiser ${doc.title}`}
+                className="rounded-lg border border-gray-200 p-2 hover:bg-gray-100"
               >
                 <Image
                   src="/icons/voir.png"
@@ -142,6 +145,12 @@ export default function ContenusPage() {
                   height={16}
                 />
               </button>
+              <Link
+                href={`/redaction?contentId=${doc.id}`}
+                className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700"
+              >
+                {doc.status === 'PUBLISHED' ? 'Réutiliser' : 'Continuer'}
+              </Link>
             </div>
           </div>
         ))}
