@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import MarkdownContent from "@/components/MarkdownContent";
-import Modal from "@/components/Modal";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
@@ -27,8 +25,6 @@ function getStatus(status?: string): { label: string; tone: "neutral" | "indigo"
 }
 
 export default function ContenusPage() {
-  const [selectedDoc, setSelectedDoc] = useState<ContentItem | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +111,7 @@ export default function ContenusPage() {
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <button type="button" onClick={() => { setSelectedDoc(doc); setIsPreviewOpen(true); }} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50">Aperçu</button>
+                      <Link href={`/contenus/${doc.id}`} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50">Aperçu</Link>
                       <Link href={`/redaction?contentId=${doc.id}`} className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-950 px-3.5 text-xs font-bold text-white transition hover:bg-slate-800">{doc.status === "PUBLISHED" ? "Réutiliser" : "Continuer"}</Link>
                     </div>
                   </div>
@@ -126,24 +122,6 @@ export default function ContenusPage() {
         ) : null}
       </div>
 
-      <Modal isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} title={selectedDoc?.title || "Aperçu du contenu"} description="Relisez le contenu avant de reprendre la rédaction.">
-        {selectedDoc ? (
-          <div className="space-y-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={getStatus(selectedDoc.status).tone}>{getStatus(selectedDoc.status).label}</Badge>
-              <span className="text-xs font-bold text-indigo-600">{selectedDoc.contentType ?? selectedDoc.channel ?? "Contenu"}</span>
-              <span className="text-xs text-slate-400">{formatDate(selectedDoc.updatedAt ?? selectedDoc.createdAt)}</span>
-            </div>
-            <div className="max-h-[45dvh] overflow-y-auto rounded-xl border border-slate-100 bg-slate-50 p-4 text-slate-700">
-              <MarkdownContent>{selectedDoc.body ?? selectedDoc.notes ?? "Aucun contenu disponible."}</MarkdownContent>
-            </div>
-            <div className="flex justify-end gap-2 border-t border-slate-100 pt-5">
-              <button type="button" onClick={() => setIsPreviewOpen(false)} className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100">Fermer</button>
-              <Link href={`/redaction?contentId=${selectedDoc.id}`} className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">Ouvrir dans la rédaction</Link>
-            </div>
-          </div>
-        ) : null}
-      </Modal>
     </div>
   );
 }
