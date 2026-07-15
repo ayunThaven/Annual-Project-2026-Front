@@ -110,7 +110,7 @@ export default function ContenusPage() {
               const notionSync = getNotionSync(doc);
               return (
                 <Card key={doc.id} className="group p-4 transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md sm:p-5">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 flex-col gap-4">
                     <div className="flex min-w-0 items-start gap-3.5">
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-lg text-indigo-600">✎</div>
                       <div className="min-w-0">
@@ -132,11 +132,11 @@ export default function ContenusPage() {
                           ) : null}
                           <span className="text-xs font-semibold text-indigo-600">{doc.contentType ?? doc.channel ?? "Contenu"}</span>
                         </div>
-                        <h2 className="mt-2 truncate text-sm font-bold text-slate-950 sm:text-base">{doc.title}</h2>
+                        <h2 className="mt-2 break-words text-sm font-bold leading-6 text-slate-950 [overflow-wrap:anywhere] sm:text-base">{doc.title}</h2>
                         <p className="mt-1 text-xs text-slate-500">Mis à jour le {formatDate(doc.updatedAt ?? doc.createdAt)}</p>
                       </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Link href={`/contenus/${doc.id}`} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50">Aperçu</Link>
                       <Link href={`/redaction?contentId=${doc.id}`} className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-950 px-3.5 text-xs font-bold text-white transition hover:bg-slate-800">{doc.status === "PUBLISHED" ? "Réutiliser" : "Continuer"}</Link>
                     </div>

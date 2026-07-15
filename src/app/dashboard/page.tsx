@@ -116,21 +116,21 @@ export default function DashboardPage() {
                   <Link href="/contenus"><StatCard value={summary.published.length} label="Publiés" detail="Contenus finalisés" icon="✓" /></Link>
                 </section>
 
-                <section className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+                <section className="grid gap-6 xl:grid-cols-2">
                   <Card className="p-5 sm:p-6">
                     <div className="flex items-start justify-between gap-4">
                       <div><p className="text-[11px] font-bold uppercase tracking-[0.16em] text-indigo-600">Production</p><h2 className="mt-1 text-lg font-extrabold tracking-tight text-slate-950">À reprendre</h2></div>
                       <Link href="/contenus" className="text-xs font-bold text-indigo-600 hover:text-indigo-700">Tout voir</Link>
                     </div>
                     {summary.inProgress.length ? <div className="mt-5 divide-y divide-slate-100">
-                      {summary.inProgress.slice(0, 4).map((content) => <div key={content.id} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"><div className="min-w-0"><p className="truncate text-sm font-bold text-slate-900">{content.title}</p><p className="mt-1 text-xs text-slate-500">{content.contentType || "Contenu"} · {content.status === "IN_REVIEW" ? "En relecture" : "Brouillon"}</p></div><Link href={`/redaction?contentId=${content.id}`} className="shrink-0 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Continuer</Link></div>)}
+                      {summary.inProgress.slice(0, 4).map((content) => <div key={content.id} className="py-4 first:pt-0 last:pb-0"><div className="min-w-0"><p className="break-words text-sm font-bold leading-5 text-slate-900 [overflow-wrap:anywhere]">{content.title}</p><p className="mt-1 text-xs text-slate-500">{content.contentType || "Contenu"} · {content.status === "IN_REVIEW" ? "En relecture" : "Brouillon"}</p></div><Link href={`/redaction?contentId=${content.id}`} className="mt-3 inline-flex rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Continuer</Link></div>)}
                     </div> : <div className="mt-5 rounded-2xl bg-slate-50 px-5 py-9 text-center"><p className="text-sm font-bold text-slate-800">Votre file est à jour.</p><Link href="/idees?generate=1" className="mt-2 inline-block text-xs font-bold text-indigo-600">Préparer un nouveau sujet</Link></div>}
                   </Card>
 
                   <Card className="p-5 sm:p-6">
                     <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-indigo-600">Calendrier</p>
                     <h2 className="mt-1 text-lg font-extrabold tracking-tight text-slate-950">Prochaines publications</h2>
-                    {summary.scheduled.length ? <div className="mt-5 space-y-3">{summary.scheduled.slice(0, 3).map((content) => <Link key={content.id} href={`/redaction?contentId=${content.id}`} className="block rounded-xl bg-slate-50 p-3.5 transition hover:bg-indigo-50"><p className="text-xs font-bold text-indigo-600">{formatDate(content.publicationDate)}</p><p className="mt-1 truncate text-sm font-bold text-slate-900">{content.title}</p></Link>)}</div> : <div className="mt-5 rounded-2xl border border-dashed border-slate-200 p-5"><p className="text-sm font-semibold text-slate-600">Aucune publication planifiée.</p><Link href="/contenus" className="mt-2 inline-block text-xs font-bold text-indigo-600">Voir la bibliothèque</Link></div>}
+                    {summary.scheduled.length ? <div className="mt-5 space-y-3">{summary.scheduled.slice(0, 3).map((content) => <Link key={content.id} href={`/redaction?contentId=${content.id}`} className="block rounded-xl bg-slate-50 p-3.5 transition hover:bg-indigo-50"><p className="text-xs font-bold text-indigo-600">{formatDate(content.publicationDate)}</p><p className="mt-1 break-words text-sm font-bold leading-5 text-slate-900 [overflow-wrap:anywhere]">{content.title}</p></Link>)}</div> : <div className="mt-5 rounded-2xl border border-dashed border-slate-200 p-5"><p className="text-sm font-semibold text-slate-600">Aucune publication planifiée.</p><Link href="/contenus" className="mt-2 inline-block text-xs font-bold text-indigo-600">Voir la bibliothèque</Link></div>}
                   </Card>
                 </section>
 
